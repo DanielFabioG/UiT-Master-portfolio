@@ -1,0 +1,749 @@
+---
+title: "Probability Concepts for Econometrics"
+format: revealjs
+editor: visual
+---
+
+### What is a Random Variable?
+
+A **random variable** is a variable whose value is unknown until observed - it's not perfectly predictable.
+
+**Examples in Economics:**\
+- Number of unemployment claims filed this week\
+- Whether a consumer purchases a product (binary: 1 = yes, 0 = no)\
+- Number of times someone visits a shopping mall per year
+
+**Key Distinction:**\
+- $X$ = the random variable (concept)\
+- $x$ = specific values it can take (realizations)
+
+------------------------------------------------------------------------
+
+### Discrete Random Variables
+
+A **discrete random variable** can take only a limited (countable) number of values.
+
+#### Probability Density Function (pdf)
+
+For discrete random variable $X$, the pdf $f(x)$ gives: $$f(x) = P(X = x)$$
+
+**Properties:**\
+- $0 \leq f(x) \leq 1$ for all $x$\
+- $\sum_{all\ x} f(x) = 1$
+
+------------------------------------------------------------------------
+
+#### R Example: Simple Discrete Distribution
+
+```{r}
+#| echo: true
+
+# Define a simple discrete random variable
+# X = number of courses failed (0, 1, 2)
+x_values <- c(0, 1, 2)
+probabilities <- c(0.7, 0.2, 0.1)
+# Verify probabilities sum to 1
+sum(probabilities)
+# Plot the distribution
+barplot(probabilities, names.arg = x_values, 
+        main = "Distribution of Failed Courses",
+        xlab = "Number of Courses Failed", ylab = "Probability")
+```
+
+------------------------------------------------------------------------
+
+### Expected Value (Mean)
+
+The **expected value** is the average value of a random variable across all possible outcomes:
+
+$$E(X) = \mu_X = \sum_{all\ x} x \cdot f(x)$$ It's a **weighted average** where probabilities are the weights.
+
+------------------------------------------------------------------------
+
+#### Properties of Expected Values
+
+1.  $E(aX) = aE(X)$ where $a$ is a constant\
+2.  $E(aX + b) = aE(X) + b$ where $a, b$ are constants\
+3.  $E(X + Y) = E(X) + E(Y)$ (always true)\
+4.  $E(XY) = E(X)E(Y)$ **only if** $X$ and $Y$ are independent
+
+------------------------------------------------------------------------
+
+#### R Example: Expected Value Calculation
+
+```{r}
+#| echo: true
+
+# Calculate expected value manually
+expected_value <- sum(x_values * probabilities)
+print(paste("Expected value:", expected_value))
+
+# Using a custom function
+calculate_expectation <- function(values, probs) {
+  return(sum(values * probs))
+}
+
+# Verify
+calculate_expectation(x_values, probabilities)
+```
+
+------------------------------------------------------------------------
+
+### Variance and Standard Deviation
+
+**Variance** measures the spread of a distribution: $$var(X) = \sigma_X^2 = E[(X - \mu_X)^2] = E(X^2) - \mu_X^2$$
+
+**Standard deviation**: $\sigma_X = \sqrt{var(X)}$
+
+------------------------------------------------------------------------
+
+#### Properties of Variance
+
+-   $var(aX + b) = a^2 var(X)$\
+-   $var(X + Y) = var(X) + var(Y) + 2cov(X,Y)$\
+-   If $X$ and $Y$ are independent: $var(X + Y) = var(X) + var(Y)$
+
+------------------------------------------------------------------------
+
+#### R Example: Variance Calculation
+
+```{r}
+#| echo: true  
+
+# Calculate E(X^2)
+x_squared_values <- x_values^2
+e_x_squared <- sum(x_squared_values * probabilities)
+
+# Calculate variance using formula: E(X^2) - [E(X)]^2
+variance_manual <- e_x_squared - expected_value^2
+std_dev_manual <- sqrt(variance_manual)
+
+print(paste("Variance:", variance_manual))
+print(paste("Standard Deviation:", std_dev_manual))
+```
+
+------------------------------------------------------------------------
+
+### Joint Distributions and Independence
+
+For two discrete random variables $X$ and $Y$:
+
+**Joint pdf**: $f(x,y) = P(X = x, Y = y)$
+
+**Marginal pdf**: $f_X(x) = \sum_{all\ y} f(x,y)$
+
+**Independence**: $X$ and $Y$ are independent if:\
+$$f(x,y) = f_X(x) \cdot f_Y(y)$$ for all $x,y$
+
+------------------------------------------------------------------------
+
+#### R Example: Joint Distribution
+
+```{r}
+#| echo: true
+ 
+# Example: Joint distribution of gender and employment status
+# Create a contingency table
+employment_data <- matrix(c(0.3, 0.2, 0.15, 0.35), nrow = 2,
+                         dimnames = list(c("Male", "Female"), 
+                                       c("Employed", "Unemployed")))
+
+print(employment_data)
+```
+
+------------------------------------------------------------------------
+
+```{r}
+#| echo: true
+ 
+# Calculate marginal distributions
+margin_gender <- rowSums(employment_data)
+margin_employment <- colSums(employment_data)
+
+print("Marginal distribution - Gender:")
+print(margin_gender)
+print("Marginal distribution - Employment:")
+print(margin_employment)
+```
+
+------------------------------------------------------------------------
+
+```{r}
+#| echo: true
+
+# Test for independence
+# If independent: joint = marginal_row × marginal_col
+independence_test <- outer(margin_gender, margin_employment)
+print("If independent, joint distribution would be:")
+print(independence_test)
+print("Actual joint distribution:")
+print(employment_data)
+```
+
+------------------------------------------------------------------------
+
+### Covariance and Correlation
+
+**Covariance** measures linear relationship between variables:
+
+$$cov(X,Y) = E[(X - \mu_X)(Y - \mu_Y)] = E(XY) - \mu_X\mu_Y$$
+
+------------------------------------------------------------------------
+
+**Correlation** is standardized covariance:\
+$$\rho = \frac{cov(X,Y)}{\sigma_X \sigma_Y}$$
+
+-   $-1 \leq \rho \leq 1$\
+-   $\rho = 0$: no linear relationship\
+-   $\rho = \pm 1$: perfect linear relationship
+
+------------------------------------------------------------------------
+
+#### R Example: Covariance and Correlation
+
+```{r}
+#| echo: true
+
+# Simulate data for demonstration
+set.seed(123)
+n <- 1000
+
+# Generate correlated variables
+x <- rnorm(n, mean = 50, sd = 10)
+y <- 2*x + rnorm(n, mean = 0, sd = 5)  # y depends on x plus noise
+
+# Calculate sample covariance and correlation
+sample_cov <- cov(x, y)
+sample_cor <- cor(x, y)
+
+print(paste("Sample Covariance:", round(sample_cov, 3)))
+print(paste("Sample Correlation:", round(sample_cor, 3)))
+```
+
+------------------------------------------------------------------------
+
+```{r}
+#| echo: true
+
+print(paste("Sample Correlation:", round(sample_cor, 3)))
+# Visualize
+plot(x, y, main = "Scatter Plot: X vs Y", 
+     xlab = "X", ylab = "Y", pch = 16, alpha = 0.6)
+abline(lm(y ~ x), col = "red", lwd = 2)
+```
+
+------------------------------------------------------------------------
+
+### Important Discrete Distributions : Bernoulli Distribution
+
+Models binary outcomes (success/failure):\
+- $P(X = 1) = p$, $P(X = 0) = 1-p$\
+- $E(X) = p$, $var(X) = p(1-p)$
+
+#### Binomial Distribution
+
+Number of successes in $n$ independent trials: $$P(X = k) = \binom{n}{k}p^k(1-p)^{n-k}$$ - $E(X) = np$, $var(X) = np(1-p)$
+
+------------------------------------------------------------------------
+
+#### R Example: Binomial Distribution
+
+```{r}
+#| echo: true
+
+# Example: Number of customers making a purchase
+n_customers <- 20
+prob_purchase <- 0.3
+
+# Calculate probabilities for different numbers of purchases
+k_values <- 0:n_customers
+prob_k <- dbinom(k_values, size = n_customers, prob = prob_purchase)
+```
+
+------------------------------------------------------------------------
+
+```{r}
+#| echo: true
+
+# Plot the distribution
+barplot(prob_k, names.arg = k_values,
+        main = "Binomial Distribution (n=20, p=0.3)",
+        xlab = "Number of Purchases", ylab = "Probability")
+```
+
+------------------------------------------------------------------------
+
+```{r}
+#| echo: true
+ 
+# Calculate expected value and variance
+expected_purchases <- n_customers * prob_purchase
+variance_purchases <- n_customers * prob_purchase * (1 - prob_purchase)
+
+print(paste("Expected purchases:", expected_purchases))
+print(paste("Variance:", variance_purchases))
+```
+
+------------------------------------------------------------------------
+
+```{r}
+#| echo: true
+
+# Simulate data
+set.seed(456)
+simulated_purchases <- rbinom(1000, size = n_customers, prob = prob_purchase)
+hist(simulated_purchases, breaks = 0:21, 
+     main = "Simulated Binomial Data", 
+     xlab = "Number of Purchases", probability = TRUE)
+```
+
+------------------------------------------------------------------------
+
+## Continuous Random Variables
+
+**Continuous random variables** can take any value in an interval (uncountably many values).
+
+**Key Differences from Discrete:**\
+- $P(X = c) = 0$ for any specific value $c$\
+- Probabilities are areas under curves\
+- Use **probability density function (pdf)** $f(x)$
+
+**Properties of Continuous pdf:**\
+- $f(x) \geq 0$ for all $x$\
+- $\int_{-\infty}^{\infty} f(x)dx = 1$\
+- $P(a \leq X \leq b) = \int_a^b f(x)dx$
+
+------------------------------------------------------------------------
+
+#### R Example: Understanding Continuous Distributions
+
+```{r}
+#| echo: true
+
+# Plot a simple continuous distribution
+x <- seq(0, 1, length.out = 1000)
+y <- 2 * (1 - x)  # f(x) = 2(1-x) for 0 ≤ x ≤ 1
+
+plot(x, y, type = "l", lwd = 2, col = "blue",
+     main = "Continuous PDF: f(x) = 2(1-x)",
+     xlab = "x", ylab = "f(x)")
+abline(h = 0, col = "gray")
+
+# Verify this is a valid pdf (area = 1)
+area_under_curve <- integrate(function(x) 2*(1-x), lower = 0, upper = 1)
+print(paste("Area under curve:", area_under_curve$value))
+```
+
+------------------------------------------------------------------------
+
+### Expected Value and Variance for Continuous Variables
+
+**Expected Value:**\
+$$E(X) = \int_{-\infty}^{\infty} x \cdot f(x)dx$$
+
+**Variance:**\
+$$var(X) = \int_{-\infty}^{\infty} (x - \mu_X)^2 f(x)dx = E(X^2) - \mu_X^2$$\
+---
+
+#### R Example: Manual Calculation vs Built-in Functions
+
+```{r}
+#| echo: true
+
+# For our f(x) = 2(1-x) example
+# Calculate expected value manually
+e_x_manual <- integrate(function(x) x * 2*(1-x), lower = 0, upper = 1)
+print(paste("E(X) manual calculation:", e_x_manual$value))
+
+# Calculate E(X^2)
+e_x_squared <- integrate(function(x) x^2 * 2*(1-x), lower = 0, upper = 1)
+variance_manual <- e_x_squared$value - (e_x_manual$value)^2
+print(paste("Variance manual calculation:", variance_manual))
+```
+
+------------------------------------------------------------------------
+
+```{r}
+#| echo: true
+
+# Compare with simulation
+set.seed(789)
+n_sim <- 100000
+
+# Generate random samples from this distribution using rejection sampling
+samples <- c()
+while(length(samples) < n_sim) {
+  candidate_x <- runif(1, 0, 1)
+  candidate_y <- runif(1, 0, 2)
+  if(candidate_y <= 2*(1 - candidate_x)) {
+    samples <- c(samples, candidate_x)
+  }
+}
+
+print(paste("Simulated E(X):", mean(samples)))
+print(paste("Simulated Variance:", var(samples)))
+```
+
+------------------------------------------------------------------------
+
+### Important Continuous Distributions
+
+#### Uniform Distribution
+
+All intervals of equal width have equal probability:\
+$$f(x) = \frac{1}{b-a} \text{ for } a \leq x \leq b$$
+
+-   $E(X) = \frac{a+b}{2}$\
+-   $var(X) = \frac{(b-a)^2}{12}$
+
+------------------------------------------------------------------------
+
+#### R Example: Uniform Distribution
+
+```{r}
+#| echo: true
+
+# Uniform distribution on [0,1]
+x_uniform <- seq(0, 1, length.out = 1000)
+y_uniform <- rep(1, 1000)  # f(x) = 1 for 0 ≤ x ≤ 1
+
+plot(x_uniform, y_uniform, type = "l", lwd = 3, col = "red",
+     main = "Uniform Distribution on [0,1]",
+     xlab = "x", ylab = "f(x)", ylim = c(0, 1.2))
+```
+
+------------------------------------------------------------------------
+
+```{r}
+#| echo: true 
+
+# Generate and analyze uniform random numbers
+uniform_samples <- runif(10000, min = 0, max = 1)
+hist(uniform_samples, breaks = 20, probability = TRUE,
+     main = "Histogram of Uniform Random Numbers",
+     xlab = "Value", ylab = "Density")
+
+# Theoretical vs empirical moments
+print(paste("Theoretical mean:", 0.5))
+print(paste("Empirical mean:", mean(uniform_samples)))
+print(paste("Theoretical variance:", 1/12))
+print(paste("Empirical variance:", var(uniform_samples)))
+```
+
+------------------------------------------------------------------------
+
+#### Normal Distribution
+
+The most important distribution in statistics:\
+$$f(x) = \frac{1}{\sqrt{2\pi\sigma^2}} \exp\left[-\frac{(x-\mu)^2}{2\sigma^2}\right]$$
+
+-   Symmetric around $\mu$\
+-   $E(X) = \mu$, $var(X) = \sigma^2$\
+-   Central Limit Theorem makes it ubiquitous
+
+------------------------------------------------------------------------
+
+#### R Example: Normal Distribution Applications
+
+```{r}
+#| echo: true
+
+# Compare different normal distributions
+x_range <- seq(-4, 8, length.out = 1000)
+
+# Standard normal
+y_standard <- dnorm(x_range, mean = 0, sd = 1)
+
+# Normal with mean=2, sd=1.5
+y_shifted <- dnorm(x_range, mean = 2, sd = 1.5)
+
+plot(x_range, y_standard, type = "l", lwd = 2, col = "blue",
+     main = "Comparison of Normal Distributions",
+     xlab = "x", ylab = "Density")
+lines(x_range, y_shifted, lwd = 2, col = "red")
+legend("topright", 
+       legend = c("N(0,1)", "N(2,2.25)"), 
+       col = c("blue", "red"), lwd = 2)
+```
+
+------------------------------------------------------------------------
+
+```{r}
+#| echo: true
+
+# Practical application: Test scores
+# Suppose test scores are normally distributed with mean 75, sd 10
+mean_score <- 75
+sd_score <- 10
+
+# What's the probability a student scores above 85?
+prob_above_85 <- 1 - pnorm(85, mean = mean_score, sd = sd_score)
+print(paste("P(Score > 85):", round(prob_above_85, 4)))
+
+# What score represents the 90th percentile?
+score_90th <- qnorm(0.90, mean = mean_score, sd = sd_score)
+print(paste("90th percentile score:", round(score_90th, 2)))
+```
+
+------------------------------------------------------------------------
+
+```{r}
+#| echo: true
+
+# Simulate and visualize
+set.seed(101112)
+simulated_scores <- rnorm(1000, mean = mean_score, sd = sd_score)
+hist(simulated_scores, breaks = 30, probability = TRUE,
+     main = "Simulated Test Scores",
+     xlab = "Score", ylab = "Density")
+
+# Overlay theoretical density
+x_theory <- seq(40, 110, length.out = 500)
+y_theory <- dnorm(x_theory, mean = mean_score, sd = sd_score)
+lines(x_theory, y_theory, col = "red", lwd = 2)
+```
+
+------------------------------------------------------------------------
+
+### Conditional Expectations and Iterated Expectations
+
+**Conditional Expectation**:
+
+$E(Y|X = x)$ is the expected value of $Y$ given that $X$ takes value $x$.
+
+**Law of Iterated Expectations**:\
+$$E(Y) = E_X[E(Y|X)]$$
+
+This powerful result means: - The overall expectation equals the expectation of conditional expectations - Very useful in econometric models
+
+------------------------------------------------------------------------
+
+#### R Example: Conditional Expectations
+
+```{r}
+#| echo: true
+
+# Example: Income conditional on education level
+set.seed(131415)
+n <- 5000
+
+# Simulate education (years)
+education <- sample(8:20, n, replace = TRUE, 
+                   prob = c(rep(0.05, 4), rep(0.1, 5), rep(0.15, 4)))
+
+# Income depends on education plus random factors
+# E(Income | Education) = 20000 + 3000 * Education
+income <- 20000 + 3000 * education + rnorm(n, 0, 10000)
+```
+
+------------------------------------------------------------------------
+
+```{r}
+#| echo: true
+
+# Calculate conditional expectations for each education level
+conditional_means <- tapply(income, education, mean)
+print("Conditional Expectations E(Income | Education):")
+print(round(conditional_means, 0))
+
+# Verify law of iterated expectations
+# E(Y) should equal weighted average of conditional expectations
+education_probs <- table(education) / n
+overall_mean_theoretical <- sum(conditional_means * education_probs)
+overall_mean_actual <- mean(income)
+
+print(paste("Overall mean (actual):", round(overall_mean_actual, 0)))
+print(paste("Overall mean (iterated expectations):", 
+            round(overall_mean_theoretical, 0)))
+```
+
+------------------------------------------------------------------------
+
+```{r}
+#| echo: true
+
+# Visualize
+boxplot(income ~ education, 
+        main = "Income Distribution by Education Level",
+        xlab = "Years of Education", ylab = "Income")
+
+# Add conditional means
+points(1:length(conditional_means), conditional_means, 
+       col = "red", pch = 16, cex = 1.2)
+```
+
+------------------------------------------------------------------------
+
+### Variance Decomposition
+
+**Variance Decomposition Formula**:\
+$$var(Y) = var_X[E(Y|X)] + E_X[var(Y|X)]$$
+
+This says total variance equals: - Variance of conditional means + Average of conditional variances - "Between-group" variation + "Within-group" variation
+
+#### R Example: Variance Decomposition
+
+```{r}
+#| echo: true
+
+# Using our income-education example
+# Calculate conditional variances
+conditional_vars <- tapply(income, education, var)
+
+# Calculate variance of conditional means
+var_of_conditional_means <- var(conditional_means) * 
+                           (length(conditional_means) - 1) / 
+                           length(conditional_means)
+
+# Calculate expected value of conditional variances
+expected_conditional_var <- sum(conditional_vars * education_probs)
+```
+
+------------------------------------------------------------------------
+
+```{r}
+#| echo: true
+
+# Total variance
+total_variance <- var(income)
+
+print("Variance Decomposition:")
+print(paste("Total variance:", round(total_variance, 0)))
+print(paste("Variance of conditional means:", 
+            round(var_of_conditional_means, 0)))
+print(paste("Expected conditional variance:", 
+            round(expected_conditional_var, 0)))
+print(paste("Sum of components:", 
+            round(var_of_conditional_means + expected_conditional_var, 0)))
+
+# This demonstrates how education explains part of income variation
+explained_variance_ratio <- var_of_conditional_means / total_variance
+print(paste("Proportion of variance explained by education:", 
+            round(explained_variance_ratio, 3)))
+```
+
+------------------------------------------------------------------------
+
+### Random Number Generation
+
+Understanding how computers generate "random" numbers is crucial for simulation studies.
+
+**Linear Congruential Generator**:\
+$$X_n = (aX_{n-1} + c) \bmod m$$
+
+**Inversion Method**: If $F(x)$ is invertible, 1. Generate $U \sim Uniform(0,1)$\
+2. Set $U = F(Y)$\
+3. Solve: $Y = F^{-1}(U)$
+
+------------------------------------------------------------------------
+
+#### R Example: Random Number Generation
+
+```{r}
+#| echo: true
+
+# Simple linear congruential generator
+simple_rng <- function(seed, n, a = 1664525, c = 1013904223, m = 2^32) {
+  x <- numeric(n)
+  x[1] <- seed
+  
+  for(i in 2:n) {
+    x[i] <- (a * x[i-1] + c) %% m
+  }
+  
+  # Convert to [0,1] interval
+  return(x / m)
+}
+```
+
+------------------------------------------------------------------------
+
+```{r}
+#| echo: true
+
+# Generate random numbers
+custom_random <- simple_rng(seed = 12345, n = 10000)
+
+# Test uniformity
+hist(custom_random, breaks = 20, probability = TRUE,
+     main = "Custom Random Number Generator",
+     xlab = "Value", ylab = "Density")
+abline(h = 1, col = "red", lwd = 2)  # Theoretical uniform density
+
+# Inversion method example: Exponential distribution
+# F(x) = 1 - exp(-λx), so F^(-1)(u) = -ln(1-u)/λ
+lambda <- 2
+uniform_vals <- runif(1000)
+exponential_vals <- -log(1 - uniform_vals) / lambda
+
+# Compare with built-in function
+exponential_builtin <- rexp(1000, rate = lambda)
+```
+
+------------------------------------------------------------------------
+
+```{r}
+#| echo: true
+
+# Plot comparison
+par(mfrow = c(1, 2))
+hist(exponential_vals, breaks = 30, probability = TRUE,
+     main = "Exponential via Inversion", xlab = "Value")
+hist(exponential_builtin, breaks = 30, probability = TRUE,
+     main = "Exponential Built-in", xlab = "Value")
+```
+
+------------------------------------------------------------------------
+
+#### Central Limit Theorem Application
+
+```{r}
+# Demonstrate CLT with different underlying distributions
+set.seed(161718)
+
+# Function to demonstrate CLT
+demonstrate_clt <- function(population_dist, sample_size, num_samples) {
+  sample_means <- numeric(num_samples)
+  
+  for(i in 1:num_samples) {
+    if(population_dist == "uniform") {
+      sample_data <- runif(sample_size, 0, 1)
+    } else if(population_dist == "exponential") {
+      sample_data <- rexp(sample_size, rate = 1)
+    } else if(population_dist == "skewed") {
+      sample_data <- rbeta(sample_size, 2, 8)
+    }
+    sample_means[i] <- mean(sample_data)
+  }
+  
+  return(sample_means)
+}
+
+# Test with different distributions
+par(mfrow = c(2, 3))
+
+for(dist in c("uniform", "exponential", "skewed")) {
+  for(n in c(5, 30)) {
+    means <- demonstrate_clt(dist, n, 1000)
+    hist(means, breaks = 30, probability = TRUE,
+         main = paste(dist, "dist, n =", n),
+         xlab = "Sample Mean")
+    
+    # Overlay normal approximation
+    x_norm <- seq(min(means), max(means), length.out = 100)
+    y_norm <- dnorm(x_norm, mean = mean(means), sd = sd(means))
+    lines(x_norm, y_norm, col = "red", lwd = 2)
+  }
+}
+```
+
+------------------------------------------------------------------------
+
+### **Key Takeaways for Econometric Applications**
+
+1.  **Model Economic Variables**: Income, prices, quantities are often continuous
+2.  **Error Terms**: Usually assumed to be normally distributed
+3.  **Simulation Studies**: Understanding random number generation is crucial
+4.  **Conditional Expectations**: Foundation for regression analysis
+5.  **Variance Decomposition**: Helps understand sources of variation in data
+6.  **Central Limit Theorem**: Justifies using normal approximations for sample means

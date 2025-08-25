@@ -1,0 +1,260 @@
+---
+title: "Profit Maximization with Cobb–Douglas Production"
+format:
+  html:
+    code-fold: true
+    toc: true
+    toc-depth: 2
+    number-sections: true
+execute:
+  echo: true
+  warning: true
+  message: true
+editor: visual
+---
+
+# A.12 (p. 766) Problem setup
+
+We have a firm producing output $Q$ with production function
+
+$$
+Q = 6 L^{1/2} K^{1/3}.
+$$
+
+The firm sells at price $P=4$, pays a wage $W=12$, and a rental rate $R=5$. Profit is
+
+$$
+\pi(L,K) = P\,Q - W L - R K = 24 L^{1/2} K^{1/3} - 12 L - 5 K.
+$$
+
+# (a) Profit-maximizing $(L,K)$
+
+**First-order conditions (FOCs)**
+
+$$
+\frac{\partial \pi}{\partial L} = 12 L^{-1/2} K^{1/3} - 12 = 0, \qquad
+\frac{\partial \pi}{\partial K} = 8 L^{1/2} K^{-2/3} - 5 = 0.
+$$
+
+From the first: $L^{-1/2} K^{1/3} = 1 \Rightarrow K = L^{3/2}$. Substituting into the second yields
+
+$$
+L^\star = \left(\frac{8}{5}\right)^2 = \frac{64}{25} \approx 2.56, \qquad
+K^\star = \left(\frac{8}{5}\right)^3 = \frac{512}{125} \approx 4.096.
+$$
+
+## R implementation
+
+```{r}
+#| label: setup
+#| include: true
+# Packages
+if (!requireNamespace("pacman", quietly = TRUE)) install.packages("pacman")
+pacman::p_load(tidyverse, mosaic, mosaicCalc, nleqslv, rgl, htmlwidgets, manipulate)
+
+# Ensure rgl plays nicely when knitting to HTML
+rgl::setupKnitr()
+```
+
+```{r}
+#| label: functions-and-parameters
+# Parameters
+P <- 4; W <- 12; R <- 5
+
+# Production and profit functions
+Qfun <- function(L, K) 6 * sqrt(L) * K^(1/3)
+pi_fun_vec <- function(L, K) P * Qfun(L, K) - W * L - R * K
+pi_fun <- function(x) pi_fun_vec(x[1], x[2])
+
+# Solve FOCs numerically (should match closed form)
+fun_foc <- function(x) {
+  L <- x[1]; K <- x[2]
+  c(12 * L^(-1/2) * K^(1/3) - 12,
+    8 * L^(1/2) * K^(-2/3) - 5)
+}
+ans <- nleqslv::nleqslv(c(1, 1), fun_foc)
+Lhat <- ans$x[1]; Khat <- ans$x[2]
+
+# Closed-form values
+L_star_cf <- (8/5)^2
+K_star_cf <- (8/5)^3
+
+list(L_nleqslv = Lhat,
+     K_nleqslv = Khat,
+     L_closed  = L_star_cf,
+     K_closed  = K_star_cf,
+     profit_at_opt = pi_fun(ans$x))
+```
+
+## Second-order conditions (SOC)
+
+The Hessian entries are
+
+$$
+\pi_{LL}=-6 L^{-3/2}K^{1/3},\quad
+\pi_{KK}=-\tfrac{16}{3}L^{1/2}K^{-5/3},\quad
+\pi_{LK}=4 L^{-1/2}K^{-2/3}.
+$$
+
+The determinant is
+
+$$
+\det H = \pi_{LL}\pi_{KK} - \pi_{LK}^2 = 16\,L^{-1}K^{-4/3} > 0,
+$$
+
+and with $\pi_{LL}<0$ the Hessian is negative definite for all $L,K>0$, so the FOCs describe a (global) maximum.
+
+```{r}
+#| label: soc-numeric-check
+d2LL <- function(L,K) -6 * L^(-3/2) * K^(1/3)
+d2KK <- function(L,K) -(16/3) * L^(1/2) * K^(-5/3)
+d2LK <- function(L,K)  4 * L^(-1/2) * K^(-2/3)
+detH <- function(L,K) d2LL(L,K)*d2KK(L,K) - d2LK(L,K)^2
+
+c(pi_LL = d2LL(Lhat,Khat),
+  pi_KK = d2KK(Lhat,Khat),
+  pi_LK = d2LK(Lhat,Khat),
+  detH  = detH(Lhat,Khat))
+```
+
+# (b) Marginal products at the optimum
+
+Marginal products:
+
+$$
+\text{MPL} = \frac{\partial Q}{\partial L} = 3 L^{-1/2} K^{1/3},\qquad
+\text{MPK} = \frac{\partial Q}{\partial K} = 2 L^{1/2} K^{-2/3}.
+$$
+
+Using the FOCs, at $(L^\star, K^\star)$ we have $\text{MPL}^\star = 3$ and $\text{MPK}^\star = 1.25$.
+
+```{r}
+#| label: mpl-mpk
+dQdL <- function(L, K) 3 * L^(-1/2) * K^(1/3)
+dQdK <- function(L, K) 2 * L^(1/2) * K^(-2/3)
+c(MPL_star = dQdL(Lhat, Khat),
+  MPK_star = dQdK(Lhat, Khat))
+```
+
+# Visualizations
+
+> Tip: Avoid zero in ranges; derivatives blow up at 0.
+
+## Contours and surfaces with `plotFun`
+
+```{r}
+#| label: plotfun-production
+# Production Q(L,K): contour and surface
+plotFun(6*L^(1/2)*K^(1/3) ~ L & K,
+        L.lim = c(0.1, 3), K.lim = c(0.1, 5),
+        main = "Production Function Q(L,K)")
+
+# Now plot with an explicit alpha in [0,1]
+plotFun(6*L^(1/2)*K^(1/3) ~ L & K,
+        L.lim = c(0.1, 3), K.lim = c(0.1, 5),
+        surface = TRUE, alpha = 0.7,
+        main = "Production Function Surface")
+```
+
+```{r}
+#| label: plotfun-profit
+# Profit π(L,K): contour and surface
+plotFun(4*(6*L^(1/2)*K^(1/3)) - 12*L - 5*K ~ L & K,
+        L.lim = c(0.1, 3), K.lim = c(0.1, 5),
+        main = "Profit Function π(L,K)")
+
+plotFun(4*(6*L^(1/2)*K^(1/3)) - 12*L - 5*K ~ L & K,
+        L.lim = c(0.1, 3), K.lim = c(0.1, 5),
+        surface = TRUE, alpha = 0.7, main = "Profit Function Surface")
+```
+
+# Final numeric answers
+
+$$
+L^\star = \frac{64}{25}\ (\approx 2.56),\quad
+K^\star = \frac{512}{125}\ (\approx 4.096),\quad
+\text{MPL}^\star = 3,\quad
+\text{MPK}^\star = 1.25.
+$$
+
+### What is a Genetic Algorithm (GA)?
+
+A **genetic algorithm** is a search method inspired by biological evolution. Instead of solving for the optimum with calculus, GA **evolves** a *population* of candidate solutions over many “generations” until it finds a very good (often near-optimal) one. The GA vignette is [here](https://luca-scr.github.io/GA/articles/GA.html).
+
+**How it works (in short):**
+
+1.  **Initialize** a population of random candidates (e.g., different $(L,K)$ pairs).
+2.  **Evaluate fitness**: score each candidate with the objective (e.g., profit $\pi(L,K)$).
+3.  **Select** the better candidates to be “parents.”
+4.  **Recombine (crossover)** parents to create “children” (new candidates).
+5.  **Mutate** some candidates slightly to keep diversity.
+6.  **Repeat** 2–5 for many generations; keep track of the best (elitism).
+
+**What GA does well**
+
+-   Handles **messy objectives**: non-linear, non-convex, non-differentiable, or noisy.
+-   Doesn’t need derivatives or algebraic FOCs.
+-   Can escape **local optima** thanks to mutation and recombination.
+
+**Trade-offs**
+
+-   **Stochastic**: results can vary; use `set.seed()` for reproducibility and run it a few times.
+-   **Slower** than calculus when a clean analytic solution exists.
+-   No formal guarantee of the exact global optimum—just *very good* solutions in practice.
+
+**In our profit example**
+
+-   Decision variables: $L, K$; fitness: $\pi(L,K)=24\sqrt{L}K^{1/3}-12L-5K$.
+-   GA searched over bounds (e.g., $L,K\in[0,10]$) and recovered essentially the same optimum as the FOCs—making it a great **sanity check** and a robust tool when calculus is hard or impossible.
+
+```{r}
+#| label: ga-solution
+#| include: true
+if (!requireNamespace("GA", quietly = TRUE)) install.packages("GA")
+library(GA)
+
+# Profit as scalar and GA-friendly fitness (handles vector or matrix input)
+pi_scalar <- function(L, K) 24 * sqrt(L) * K^(1/3) - 12*L - 5*K
+
+fitness_pi <- function(x) {
+  if (is.matrix(x)) {
+    apply(x, 1, function(z) pi_scalar(z[1], z[2]))
+  } else {
+    pi_scalar(x[1], x[2])
+  }
+}
+
+# Search box (wide enough to contain the interior optimum)
+lower <- c(0, 0)
+upper <- c(10, 10)
+
+set.seed(2025)
+GA_prof <- ga(
+  type = "real-valued",
+  fitness = fitness_pi,
+  lower = lower, upper = upper,
+  popSize = 150, maxiter = 300, run = 80,
+  elitism = 2, pmutation = 0.2
+)
+
+# Best GA solution (may return multiple near-ties; take the first row)
+sol_ga <- as.numeric(GA_prof@solution[1, ])
+L_ga <- sol_ga[1]; K_ga <- sol_ga[2]
+pi_ga <- pi_scalar(L_ga, K_ga)
+
+# Closed-form / FOC values for comparison (from earlier section)
+L_cf <- (8/5)^2
+K_cf <- (8/5)^3
+pi_cf <- pi_scalar(L_cf, K_cf)
+
+tibble(
+  method = c("FOC (closed form)", "GA"),
+  L = c(L_cf, L_ga),
+  K = c(K_cf, K_ga),
+  profit = c(pi_cf, pi_ga),
+  abs_diff_L = c(NA_real_, abs(L_ga - L_cf)),
+  abs_diff_K = c(NA_real_, abs(K_ga - K_cf)),
+  abs_diff_pi = c(NA_real_, abs(pi_ga - pi_cf))
+)
+
+```

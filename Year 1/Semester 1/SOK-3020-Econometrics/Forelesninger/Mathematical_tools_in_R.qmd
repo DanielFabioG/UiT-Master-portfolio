@@ -1,0 +1,717 @@
+---
+title: "Mathematical tools in R"
+format: html
+editor: visual
+---
+
+Load the `tidyverse` package which includes `dplyr`, `ggplot2` and others.
+
+```{r}
+#| message: false
+library(tidyverse)
+```
+
+Remove all objects in the current workspace.
+
+```{r}
+rm(list=ls())
+```
+
+## Arithmetic operations in R
+
+Here are some basic arithmetic operations. The comments explain each operation.
+
+```{r}
+2+1      # Add 2 and 1
+4-2      # Subtract 2 from 4
+2*3      # Multiply 2 by 3
+1/5      # Divide 1 by 5
+2^3      # 2 raised to the power of 3
+8^(1/3)  # Cube root of 8
+8^1/3    # This might not be what you want; it's 8 to the power of 1, then divided by 3
+```
+
+## Checking equality
+
+Use `==` to check for equality. Be aware of floating-point precision issues.
+
+```{r}
+4-2==2  # Check if 2 equals 2
+1==.9999999999999  # Check if 1 is approximately equal to 1 with 13 decimal places
+```
+
+## Assignment of values to variables
+
+Values are assigned to variables using the `<-` operator.
+
+```{r}
+a <- 2      # Assign value 2 to variable a
+b <- 5      # Assign value 5 to variable b
+a           # Print value of a
+b           # Print value of b
+c <- 3 ; c  # Assign value 3 to variable c and then print its value
+```
+
+### Basic arithmetic operations using variables
+
+```{r}
+a + b  # Add values of a and b
+a / b  # Divide value of a by value of b
+```
+
+### Comparisons
+
+```{r}
+a > b   # Check if a is greater than b
+a < b   # Check if a is less than b
+
+# Reassign value 5 to variable c
+c <- 5
+a*c < b*c   # Check if product of a and c is less than product of b and c
+
+# Reassign value -4 to variable c
+c <- -4
+a*c < b*c   # Check if product of a and c is less than product of b and c
+```
+
+## Rounding numbers
+
+```{r}
+round(1/3,4)      # Round 1/3 to 4 decimal places
+round(2*4.7536,2) # Round product of 2 and 4.7536 to 2 decimal places
+```
+
+## Various mathematical operations
+
+This section demonstrates how R handles edge cases like powers of zero, division by zero, and infinity.
+
+```{r}
+2^0     # 2 raised to the power of 0
+223^0   # 223 raised to the power of 0
+
+2/0     # Dividing by zero gives positive infinity
+-10/0   # Dividing a negative number by zero gives negative infinity
+
+0.8^Inf # 0.8 raised to the power of infinity, x^Inf when 0 < x < 1 is equal to zero
+2^Inf   # 2 raised to the power of infinity
+```
+
+## Handling scientific notation
+
+R uses scientific (exponential) notation for very large or very small numbers. The `scipen` option can be used to control this behavior.
+
+```{r}
+a <- 510000
+b <- 0.00000034
+
+a*b # Multiply a and b
+a/b # Divide a by b
+
+options(scipen=15)  # Force R not to use exponential notation
+a / b
+b / a
+
+options(scipen=FALSE)   # Allow R to use exponential notation again
+b / a
+```
+
+## Work with logarithms
+
+The `log()` function computes the natural logarithm. We can force R not to use exponential notation for better readability of large numbers.
+
+```{r}
+options(scipen=999) # Force R not to use exponential notation
+
+# Using map_dbl from purrr to iterate over 1:7 and perform calculation
+x <- map_dbl(1:7, ~10^(.x - 1))
+
+# Create a data frame with x and its log
+table <- tibble(x=x, log_x=log(x))
+
+# Display the table
+table
+```
+
+A key property of logarithms is that the log of a product is the sum of the logs: $log(A \cdot B) = log(A) + log(B)$.
+
+```{r}
+log(1000*10000)                # Logarithm of product of 1000 and 10000
+log(1000)+log(10000)           # Sum of logarithm of 1000 and logarithm of 10000
+log(1000*10000)==log(1000)+log(10000) # Check if they are equal
+```
+
+The exponential function `exp()` is the inverse of the natural logarithm. `exp(1)` gives Euler's number, $e$.
+
+```{r}
+a <- log(10*100)
+a
+exp(a)      # Exponential function to reverse the logarithm
+exp(1)      # e to the power of 1
+log(exp(1)) # Logarithm of exponential function
+```
+
+Plot of the natural logarithm function.
+
+```{r}
+# Plot of natural logarithm
+curve(log(x), from=0, to=100, main="Natural logarithm")
+
+# Same plot but with larger range
+curve(log(x), from=0, to=1000000, main="Natural logarithm")
+```
+
+## Function definition and usage
+
+Define a custom function `f` to compute the logarithm.
+
+```{r}
+f <- function(x) { log(x) } # Define a function f to compute logarithm
+f                           # Display function definition
+f(100)                      # Apply function to value 100
+log(100)                    # Logarithm of 100
+```
+
+## Work with decimals and percentages
+
+For small changes, the difference in logs multiplied by 100 is a good approximation of the percentage change.
+
+```{r}
+y <- c(3,3.02)  # Create a vector y
+y
+
+diff(y)             # Difference between elements of y
+diff(y)/y[1]        # Relative difference
+100*diff(y)/y[1]    # Percentage difference
+
+lny <- log(y)       # Logarithm of y
+100*diff(lny)       # Percentage difference of logarithm values
+```
+
+Let's examine the approximation error.
+
+```{r}
+y <- seq(1,1.25,0.05)            # Create a sequence from 1 to 1.25 with increments of 0.05
+y <- c(1,y[1]+0.01,y[-1])        # Add an element to the vector y
+y
+percent <- 100*(y-y[1])/y[1]     # Compute percentage difference from the first element
+logdiff <- 100*(log(y)-log(y[1])) # Compute percentage difference of logarithms from the first element
+approx.error <- 100*((percent-logdiff)/logdiff) # Compute approximate error
+
+table <- cbind(y, percent, logdiff, approx.error) # Bind columns to form a table
+table
+table[-1,] # Remove the first row
+```
+
+## Understanding linear relationships
+
+Clear the workspace.
+
+```{r}
+rm(list=ls())
+```
+
+Define a simple linear function $f(x) = 1 + x$.
+
+```{r}
+f <- function(x) { 1+1*x }
+
+# Evaluate the function at x=0 to get the intercept
+f(0)
+```
+
+Calculate the slope (rise over run) between two points.
+
+```{r}
+x1 <- 2
+x2 <- 4
+
+m <- (f(x2) - f(x1)) / (x2 - x1)
+rise <- f(x2) - f(x1)
+run <- x2 - x1
+
+print(paste("Slope:", m))
+print(paste("Rise:", rise))
+print(paste("Run:", run))
+```
+
+Plot the linear function.
+
+```{r}
+#| fig-width: 6
+#| fig-height: 6
+ggplot(data.frame(x = c(-3, 10)), aes(x)) +
+  stat_function(fun = f, geom = "line") +
+  geom_vline(aes(xintercept = 0), color = "red") +
+  geom_hline(aes(yintercept = 0), color = "red") +
+  geom_point(aes(x = x1, y = f(x1)), color = "blue", size = 3) +
+  geom_point(aes(x = x2, y = f(x2)), color = "green", size = 3) +
+  labs(title = "A linear relationship", x = "x", y = "y") +
+  coord_fixed(ratio = 1) + # This will ensure a square aspect ratio
+  theme_minimal()
+```
+
+Derive the function to obtain its slope (derivative).
+
+```{r}
+D(expression(1+1*x), "x")
+```
+
+Plot the elasticity (a measure of responsiveness) of the function. Let's define a new linear function $f(x) = 1 + 2x$. The elasticity is given by $\frac{dy}{dx} \cdot \frac{x}{y}$. For this function, the elasticity is $\frac{2x}{1+2x}$.
+
+```{r}
+f <- function(x) { 1+2*x }
+elasticity <- function(x) { 2*x/f(x) }
+elasticity(1)
+
+# Create a plot
+ggplot(data.frame(x = c(0.1, 10)), aes(x)) +
+  stat_function(fun = elasticity, geom = "line") +
+  geom_vline(aes(xintercept = 1), color = "red") +
+  geom_hline(aes(yintercept = elasticity(1)), color = "blue") +
+  labs(title = "Elasticity of y = 1 + 2x at x=1" , x = "x", y = "Elasticity") +
+  theme_minimal()
+```
+
+## Study of derivatives for nonlinear relationships
+
+Nonlinear relationships.
+
+```{r}
+rm(list=ls())
+```
+
+### Differentiation rules
+
+Derivative rule 1: Derivative of a constant is 0.
+
+```{r}
+D(expression(c), "x")
+```
+
+Derivative rule 2: Power rule, $\frac{d}{dx}(x^n) = nx^{n-1}$.
+
+```{r}
+D(expression(x^n), "x")
+```
+
+Derivative rule 4: Derivative of constant times a power function, $\frac{d}{dx}(cx^n) = cnx^{n-1}$.
+
+```{r}
+D(expression(c*x^n), "x")
+```
+
+Derivative rule 7: Derivatives involving exponential functions.
+
+```{r}
+D(expression(exp(x)), "x")
+D(expression(exp(a*x+b)), "x")
+```
+
+Derivative rule 8: Derivatives involving logarithms.
+
+```{r}
+D(expression(log(x)), "x")
+D(expression(log(a*x+b)), "x")
+```
+
+### Example A.1
+
+Differentiate the function $4x + 1$.
+
+```{r}
+D(expression(4*x+1), "x")
+```
+
+### Example A.2
+
+Plot and differentiate the quadratic function $y = x^2 - 8x + 16$.
+
+```{r}
+curve(x^2-8*x+16, from=-1, to=10, main="Quadratic function: x^2 - 8x + 16")
+D(expression(x^2-8*x+16), "x")
+```
+
+### The slope (derivative) of the $y=log(x)$ function
+
+The derivative is $1/x$.
+
+```{r}
+D(expression(log(x)), "x")
+```
+
+The slope $\frac{dy}{dx}$ as a function.
+
+```{r}
+d <- function(x) { 1/x }
+x <- 1:50
+d(x)
+plot(x, d(x), type="l", main="The derivative of the log function")
+```
+
+The elasticity of the $log(x)$ function is given by slope $\times \frac{x}{y} = \frac{1}{x} \times \frac{x}{log(x)} = \frac{1}{log(x)}$.
+
+```{r}
+e <- function(x) { (1/x)*(x/log(x)) }
+# Which simplifies to:
+# e <- function(x) { (1/log(x)) }
+plot(x, e(x), type="l", main="The elasticity of the log function")
+
+# Calculate elasticity at specific x-values
+e(2)
+e(10)
+```
+
+### Example A.2 (continued)
+
+For the quadratic function $x^2 - 8x + 16$, calculate and plot its elasticity.
+
+```{r}
+rm(list=ls())
+curve(x^2-8*x+16, from=-1, to=10, main="The quadratic function x^2 - 8x + 16")
+D(expression(x^2-8*x+16), "x")
+
+f <- function(x) { x^2-8*x+16 }
+dy <- function(x) { (2*x-8) }
+e <- function(x) { (2*x-8)*(x/f(x)) }
+
+x <- seq(0,4,2)
+f(x)
+dy(x)
+e(x)
+
+# Combine the results in a matrix and plot elasticity
+cbind(x,f(x),dy(x),e(x))
+curve(e(x), 0,3.9, main="The elasticity of the quadratic function x^2 - 8x + 16")
+```
+
+### Partial derivative
+
+Find the partial derivative of a multi-variable function with respect to $x$.
+
+```{r}
+D(expression(a*x^2+b*x+c*z+d), "x")
+```
+
+### Area under the curve
+
+This entire section is presented in a non-evaluated code chunk.
+
+```{r}
+#| eval: false
+# Plot the function 2x and compute the area under the curve for specific intervals
+curve(2*x,0,1)
+integrand <- function(x) { 2*x }
+integrate(integrand, lower = 0, upper = 1)
+integrate(integrand, lower = 0.2, upper = 0.6)
+0.6^2-0.2^2
+
+# Shade a specific area under the curve on the plot
+# We would like to shade the region represented by
+# P(0.2 < X < 0.6). The first vertex of our polygon is (0.2,0).
+cord.x <- c(0.2)
+cord.y <- c(0)
+# The second vertex is (0.2,f(0.2)), where f(0.2) is the value on the y axis of 2*x evaluated at 0.2.
+cord.x <- c(cord.x,0.2)
+cord.y <- c(cord.y,integrand(0.2))
+# The third and fourth vertices is (0.6,f(0.6)) and (f(0.6),0).
+cord.x <- c(cord.x,0.6,0.6)
+cord.y <- c(cord.y,integrand(0.6),0)
+
+curve(2*x,0,1)
+polygon(cord.x,cord.y,col='aquamarine3')
+
+# Calculate and display the numerical value of the shaded area on the plot
+num <- integrate(integrand, lower = 0.2, upper = 0.6) ; num
+str(num)
+text(0.4, 0.4, paste(num$value))
+```
+
+# Exercises, page 764 - 767
+
+Clear the workspace.
+
+```{r}
+rm(list=ls())
+```
+
+Load package with dedicated functions.
+
+```{r}
+library(mosaic)
+```
+
+## Using `mosaic` functions
+
+Define a function using the `makeFun` utility from the `mosaic` package:
+
+```{r}
+f <- makeFun(2+3*x ~ x)
+f(0)  # Evaluate the function at x=0
+f(2)  # Evaluate the function at x=2
+```
+
+Plot the function for $x$ in $[0,4]$:
+
+```{r}
+plotFun(f(x) ~ x, xlim=c(0,4), ylim=c(0,14), main="The linear function 2+3*x")
+```
+
+Calculate the derivative of the function with respect to $x$:
+
+```{r}
+D(expression(2+3*x),"x")
+```
+
+Define the elasticity function using `makeFun`:
+
+```{r}
+e <- makeFun(3*x/f(x) ~ x)
+```
+
+Plot the elasticity function for $x$ in $[0,4]$:
+
+```{r}
+plotFun(e(x) ~ x, xlim=c(0,4), col="brown", main="The elasticity of the linear function 2+3*x")
+e(1)  # Evaluate the elasticity at x=1
+```
+
+## Using `base R` functions
+
+Define the function using base R:
+
+```{r}
+g <- function(x) {2+3*x}
+g(0)  # Evaluate the function at x=0
+g(2)  # Evaluate the function at x=2
+```
+
+Plot the function for $x$ in $[0,4]$:
+
+```{r}
+curve(g(x), 0, 4, col="red", main="The linear function 2+3*x")
+```
+
+Define the elasticity function using base R:
+
+```{r}
+h <- function(x) {3*x/g(x)}
+```
+
+Plot the elasticity function for $x$ in $[0,4]$:
+
+```{r}
+curve(h(x), 0, 4, col="green", main="The elasticity of the linear function 2+3*x")
+h(1)  # Evaluate the elasticity at x=1
+```
+
+Clear the workspace:
+
+```{r}
+rm(list=ls())
+```
+
+## A.1
+
+1\) $Q = -3 + 2P$
+
+Define a function $Q$ in terms of $P$:
+
+```{r}
+Q1 <- makeFun(-3 + 2*P ~ P)
+Q1(0) # Evaluate the function at P=0
+```
+
+Plot the function for $P$ in $[0,12]$:
+
+```{r}
+plotFun(Q1(P)~P, xlim = c(0,12), main="The linear function -3+2*P")
+```
+
+Calculate the slope (derivative) of the function with respect to $P$:
+
+```{r}
+D(expression(-3 + 2*P),"P")
+```
+
+Define the slope function:
+
+```{r}
+d1 <- function(P) {2}
+d1(2)  # Evaluate the slope at P=2
+d1(10) # Evaluate the slope at P=10
+```
+
+Define and calculate the elasticity as (slope $\times P / Q$):
+
+```{r}
+e1 <- function(P) {2 * P/Q1(P)}
+e1(10)      # Evaluate elasticity at P=10
+e1(P=10)    # Another way to evaluate elasticity at P=10
+```
+
+Plot the elasticity function for $P$ in $[2,12]$:
+
+```{r}
+plotFun(e1(P) ~ P, xlim = c(2,12), main="The elasticity of the linear function -3+2*P")
+```
+
+2\) $Q = 100 - 20P$
+
+Define a linear demand function $Q$ as a function of price $P$.
+
+```{r}
+Q2 <- makeFun(100 -20*P ~ P) # Define the function using makeFun
+Q2(0) # Evaluate the function when P=0
+```
+
+Plot the demand curve $Q$ as a function of $P$ for the range $[0,12]$.
+
+```{r}
+plotFun(Q2(P)~P, xlim = c(0,12), main="The linear function 100-20*P")
+```
+
+Calculate the slope (first derivative) of the demand function with respect to $P$.
+
+```{r}
+D(expression(100 -20*P),"P")
+```
+
+Define a function to represent the constant slope of the demand curve.
+
+```{r}
+d2 <- function(P) {-20}
+d2(2)  # Evaluate slope at P=2
+d2(10) # Evaluate slope at P=10
+```
+
+Calculate the elasticity of the demand curve as (slope $\times P / Q$).
+
+```{r}
+e2 <- function(P) {-20 * P/Q2(P)}
+e2(10)      # Evaluate elasticity at P=10
+e2(P=10)    # Another way to evaluate elasticity at P=10
+```
+
+Plot the elasticity as a function of $P$ for the range $[0,4]$.
+
+```{r}
+plotFun(e2(P) ~ P, xlim = c(0,4), main="The elasticity of the linear function 100-20*P")
+```
+
+3\) $Q=50P^{-2}$
+
+Define a non-linear demand function $Q$ as a function of price $P$.
+
+```{r}
+Q3 <- function(P) {50*(P^(-2))} # Define the function
+Q3(4) # Evaluate the function when P=4
+```
+
+Plot the demand curve $Q\_3$ as a function of $P$.
+
+```{r}
+# Data frame for Q3
+P_values_q3 <- seq(0.1, 5, by = 0.1)
+df_q3 <- data.frame(P = P_values_q3, Quantity = sapply(P_values_q3, Q3))
+
+p_q3 <-
+  ggplot(df_q3, aes(x = P, y = Quantity)) +
+  geom_line() +
+  ggtitle("Q3 as a function of P") +
+  xlab("P") + ylab("Quantity")
+
+p_q3
+```
+
+Calculate the slope (first derivative) of the demand function with respect to $P$.
+
+```{r}
+D(expression(50*P^-2),"P")
+```
+
+Define a function for the slope of this non-linear demand curve.
+
+```{r}
+d3 <- function(P) {-(50 * (P^-(2+1) * 2))}
+```
+
+Plot the slope.
+
+```{r}
+P_values <- seq(0.1, 3, by = 0.01)
+df_d3 <- data.frame(P = P_values, Slope = sapply(P_values, d3))
+
+p_d3 <-
+  ggplot(df_d3, aes(x = P, y = Slope)) +
+  geom_line() +
+  ggtitle("Slope as a function of P") +
+  xlab("P") + ylab("Slope")
+
+p_d3
+```
+
+Calculate the elasticity of this non-linear demand curve as (slope $\times P / Q$).
+
+```{r}
+e3 <- function(P) {-(50 * (P^-(2+1) * 2)) * P/Q3(P)}
+```
+
+Plot the elasticity.
+
+```{r}
+P_values_e3 <- seq(0.1, 1, by = 0.01)
+df_e3 <- data.frame(P = P_values_e3, Elasticity = sapply(P_values_e3, e3))
+
+p_e3 <-
+  ggplot(df_e3, aes(x = P, y = Elasticity)) +
+  geom_line() +
+  ggtitle("Elasticity as a function of P") +
+  xlab("P") + ylab("Elasticity")
+
+p_e3
+```
+
+The expression for elasticity simplifies to -2. See a check on [WolframAlpha](https://www.google.com/search?q=https://www.wolframalpha.com/input%3Fi%3Dsimplify%2B-%252850*%2528P%255E-%25282%252B1%2529*2%2529%2529%2B*%2BP%252F%252850*P%255E-2%2529%2B).
+
+## A2 section
+
+1\) $log(MORTALITY) = 7.5 - 0.5 \cdot log(INCOME)$
+
+Convert the constant in the log-linear model to its original scale.
+
+```{r}
+log(exp(7.5))
+```
+
+Define the function for mortality as a function of income based on a log-log model. This means we convert the function back to its original scale: $MORTALITY = exp(7.5) \cdot INCOME^{-0.5}$.
+
+```{r}
+f1 <- makeFun(exp(7.5)*INCOME^-0.5 ~INCOME)
+```
+
+Plot the mortality as a function of income without a specific range limit.
+
+```{r}
+plotFun(f1(INCOME) ~ INCOME, main="Mortality as a function of income")
+```
+
+Plot the mortality as a function of income for the range $[0,30]$.
+
+```{r}
+plotFun(f1(INCOME) ~ INCOME, xlim = c(0,30), main="Mortality as a function of income")
+```
+
+Calculate the slope (first derivative) of the mortality function with respect to income.
+
+```{r}
+D(expression(exp(7.5)*INCOME^-0.5),"INCOME")
+```
+
+Calculate the elasticity of the mortality curve as (slope $\times$ INCOME / MORTALITY). For a log-log model of the form $log(Y) = \beta_0 + \beta_1 log(X)$, the elasticity is simply $\beta_1$. In this case, it should be -0.5.
+
+```{r}
+e1 <- function(INCOME) {-(exp(7.5) * (INCOME^-(0.5 + 1) * 0.5))*INCOME/f1(INCOME)}
+e1(1)   # Evaluate elasticity at INCOME=1
+e1(0.5) # Evaluate elasticity at INCOME=0.5
+e1(3)   # Evaluate elasticity at INCOME=3
+```

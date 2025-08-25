@@ -1,0 +1,220 @@
+---
+format: 
+  pdf:
+    geometry:
+      - top=20mm
+      - left=20mm
+      - heightrounded
+    fontsize: 12pt
+    mainfont: Times New Roman
+    documentclass: scrartcl
+    papersize: a4
+    toc-title: "Innholdsfortegnelse"
+    toccolor: black
+    toc-depth: 2
+echo: true
+message: false
+warning: false
+bibliography: dokumentobjekter/texstuff/references.bib
+csl: dokumentobjekter/texstuff/norsk-apa-manual.csl
+crossref: 
+  lof-title: "Figurliste"
+  fig-title: "Figur"
+  lot-title: "Tabelliste"
+  tbl-title: "Tabell"
+header-includes:
+  - \usepackage{wrapfig}
+  - \usepackage{subcaption}
+  - \usepackage{amsmath}
+  - \usepackage{cancel}
+  - \usepackage{hyperref}
+  - \usepackage{tikz}
+  - \usepackage{setspace}
+  - \setstretch{1.5}
+  - \usetikzlibrary{shapes.geometric, arrows, arrows.meta, positioning, calc}
+  - \usepackage{tabularx}
+  - \renewcommand{\maketitle}{}
+  - \usepackage{fancyhdr}
+  - \pagestyle{fancy}
+  - \fancyhf{} 
+  - \fancyhead[L]{\rightmark}
+  - \fancyhead[R]{\thepage}
+  - \fancyfoot[C]{\thepage}
+  - \usepackage{colortbl}
+  - \definecolor{cornflowerblue}{RGB}{100,149,237}
+  - \definecolor{darkblue}{RGB}{115,150,255}
+  - \definecolor{lighterblue}{RGB}{131, 191, 212} 
+  - \definecolor{lightblue}{RGB}{178,211,220}
+keep-tex: false
+nocite: |
+  @*
+---
+
+```{r, include=FALSE}
+# Load necessary libraries
+library(tidyverse)
+```
+
+
+# Assignment 1
+
+## Excercise A.14
+
+*Suppose that a person's earnings (INCOME) are determined by their education (EDUC) and experience (EXPER) according to the relation*
+$$
+\text{INCOME} = -2 EDUC^2 + 78 EDUC - 2 EXPER^2 + 66 EXPER - 2 EDUC \times EXPER
+$$
+
+*Find the values of education and experience that maximize the person's income.*
+
+To maximize the income function, we need to find the critical points by taking the partial derivatives with respect to EDUC and EXPER, setting them to zero, and solving the resulting equations.
+
+$$
+\frac{\partial \text{INCOME}}{\partial \text{EDUC}} = -4 \text{EDUC} + 78 - 2 \text{EXPER} = 0 \rightarrow - 4 \text{EDUC} - 2 \text{EXPER} = -78
+$$
+
+$$
+\frac{\partial \text{INCOME}}{\partial \text{EXPER}} = -4 \text{EXPER} + 66 - 2 \text{EDUC} = 0 \rightarrow - 2 \text{EDUC} - 4 \text{EXPER} = -66
+$$
+
+Solving these two equations simultaneously, we can express one variable in terms of the other and find the optimal values.
+
+```{r}
+INCOME <- expression(-2 * EDUC^2 + 78 * EDUC - 2
+                     * EXPER^2 + 66 * EXPER - 2 * EDUC * EXPER)
+                   
+# Define the partial derivatives
+partial_EDUC <- D(INCOME, "EDUC")
+
+partial_EXPER <- D(INCOME, "EXPER")
+
+# printing the partial derivatives
+partial_EDUC
+partial_EXPER
+```
+We now have our two equations, and can solve them using a matrix approach. What we essentialy do is to express the equations in the form of Ax = B, where A is the coefficient matrix, x is the variable matrix (EDUC and EXPER), and B is the constants matrix. Mathematically, this can be represented as:
+
+$$
+\begin{bmatrix}
+-4 & -2 \\
+-2 & -4
+\end{bmatrix}
+\begin{bmatrix}
+\text{EDUC} \\
+\text{EXPER}
+\end{bmatrix}
+=
+\begin{bmatrix}
+-78 \\
+-66
+\end{bmatrix}
+$$
+
+
+We can solve for x (EDUC and EXPER) by calculating the inverse of matrix A and multiplying it by matrix B:
+
+$$
+\text{x} = \text{A}^{-1} \times \text{B}
+$$
+
+Which can be computed in R as follows:
+
+
+```{r}
+# Copilot generated R code to solve the equations
+# Coefficient matrix
+A <- matrix(c(-4, -2, -2, -4), nrow = 2, byrow = TRUE)
+
+# Constants vector
+B <- c(-78, -66)
+
+# Solve the linear equations
+solution <- solve(A, B)
+
+# Print the results
+paste("The maximum value of Education is",
+      solution[1], "and Experience is", solution[2])
+```
+
+\newpage
+
+## Excercise A.19
+
+*Suppose your wage rate is determined by*
+$$
+WAGE = -19.68 + 2.52 EDUC + 0.55 EXPER - 0.007 EXPER^2
+$$
+*where EDUC is years of schooling and EXPER is years of work experience. Using calculus, what value of EXPER maximizes WAGE for a person with 16 years of education?*
+
+To find the value of EXPER that maximizes WAGE for a person with 16 years of education, we need to take the partial derivative of the WAGE function with respect to EXPER, set it to zero, and solve for EXPER.
+
+$$
+\frac{\partial WAGE}{\partial EXPER} = 0.55 - 0.014 EXPER = 0
+$$
+Solving for EXPER, we get:
+
+$$
+0.014 EXPER = 0.55 \\
+EXPER = \frac{0.55}{0.014} \approx 39.29
+$$
+
+```{r}
+# Define the WAGE function
+WAGE <- expression(-19.68 + 2.52*EDUC + 0.55*EXPER - 0.007*EXPER^2)
+
+# Take the partial derivative with respect to EXPER
+partial_EXPER_WAGE <- D(WAGE, "EXPER")
+partial_EXPER_WAGE
+```
+
+```{r}
+# Solve the equation 0.55 - 0.014 * EXPER = 0
+
+EXPER_value <- 0.55 / 0.014
+paste("The value of EXPER that maximizes WAGE for a person with 16 years of EDUC is",
+      round(EXPER_value, 2), "years.")
+```
+Double checking the second derivative to ensure it's a maximum:
+
+```{r}
+# Second derivative with respect to EXPER
+d2 <- D(partial_EXPER_WAGE, "EXPER")
+
+paste("The second derivative is",
+      as.numeric(eval(d2)),"which is less than 0, confirming the maximum.")
+```
+
+\newpage
+
+## Excercise A.20
+
+*Suppose wages are determined by the following equation*
+$$
+WAGE = -23.06 + 2.85 EDUC + 0.80 EXPER - 0.008 EXPER^2 - 9.21 FEMALE
+$$
+$$
++ 0.34 (FEMALE \times EDUC) - 0.015 (EDUC \times EXPER)
+$$
+
+Find $\frac{\partial WAGE }{\partial EDUC}$ for a female with 16 years of schooling and 10 years of experience.
+
+
+
+```{r}
+WAGE = expression(-23.06 + 2.85* EDUC + 0.80* EXPER - 0.008* EXPER^2 - 9.21* FEMALE + 0.34*(FEMALE*EDUC) - 0.015*(EDUC*EXPER))
+
+derivative_EDUC <- D(WAGE, "EDUC")
+
+derivative_EDUC
+```
+
+```{r}
+# Substituting the values for educ = 16, exp = 10 and female = 1
+subs_wage = 2.85*16 + 0.34*1 - 0.015*10
+
+
+# Printing the result
+round(as.numeric(eval(subs_wage)), 2)
+```
+
+The $\frac{\partial WAGE }{\partial EDUC}$ for a female with 16 years of education and 10 years of experience is approximately 45.79.
