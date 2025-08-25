@@ -1,4 +1,4 @@
-# UiT Bachelor Portfolio — Economics with Data Science
+# UiT Master Portfolio — Economics with Data Science
 
 This repository organizes my master studies at UiT (program: “Samfunnsøkonomi med Datavitenskap”) in a clean, consistent folder layout by year, semester, and course. Content and docs are in English.
 
