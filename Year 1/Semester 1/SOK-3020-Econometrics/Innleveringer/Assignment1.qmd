@@ -209,12 +209,12 @@ derivative_EDUC
 ```
 
 ```{r}
-# Substituting the values for educ = 16, exp = 10 and female = 1
-subs_wage = 2.85*16 + 0.34*1 - 0.015*10
+# Substituting the values for exp = 10 and female = 1
+subs_wage = 2.85 + 0.34*1 - 0.015*10
 
 
 # Printing the result
 round(as.numeric(eval(subs_wage)), 2)
 ```
 
-The $\frac{\partial WAGE }{\partial EDUC}$ for a female with 16 years of education and 10 years of experience is approximately 45.79.
+The $\frac{\partial WAGE }{\partial EDUC}$ for a female with 16 years of education and 10 years of experience is approximately 3.05.
