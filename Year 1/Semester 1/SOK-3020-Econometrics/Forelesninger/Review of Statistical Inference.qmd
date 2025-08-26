@@ -1,0 +1,1051 @@
+---
+title: "Review of Statistical Inference"
+format: revealjs
+editor: visual
+---
+
+Statistical inference allows us to draw conclusions about a population based on a sample of data. This is essential when we cannot measure every individual in a population - for example, when an airplane seat designer needs to know the average hip size of U.S. flight passengers without measuring every person in the country.
+
+---
+
+## A Sample of Data
+
+To carry out statistical inference, we need representative data from the population of interest. The hip width data contains 50 measurements from adult passengers.
+
+```{r}
+library(mosaic)
+library(TeachingDemos)
+#browseURL("http://www.principlesofeconometrics.com/poe5/data/def/hip.def")
+# Load the hip data
+load(url("http://www.principlesofeconometrics.com/poe5/data/rdata/hip.rdata"))
+
+# Table C.1 - Hip Width Data
+print(paste("Table C.1 - Sample Hip Size Data"))
+matrix(hip$y, ncol = 5)
+```
+
+---
+
+Let's visualize this data with a histogram.
+
+```{r}
+# Example C.1 - Histogram of Hip Width Data
+#histogram(~y, data=hip)
+#gf_histogram( ~ y, data = hip)
+#hip %>% ggplot(aes(y)) + geom_histogram(bins = 10, alpha=0.7)
+
+# Example C.1 - Histogram of Hip Width Data with percentages
+hip %>% 
+  ggplot(aes(x = y)) + 
+  geom_histogram(aes(y = ..count../sum(..count..)), bins = 9, fill = "blue", alpha = 0.7) +
+  labs(x = "Hip Width (inches)", y = "Percentage", title = "Histogram of Hip Width Data") +
+  scale_y_continuous(labels = scales::percent_format(accuracy = 1)) + theme_minimal()
+```
+
+---
+
+## An Econometric Model
+
+The hip size of a randomly chosen person is a random variable $Y$. When we sample $N = 50$ individuals, we get observations $Y_1, Y_2, \ldots, Y_N$, where each $Y_i$ represents one person's hip size.
+
+We assume:  
+- The population mean is $E(Y) = \mu$   
+- The population variance is $\text{var}(Y) = \sigma^2$  
+- We write this compactly as $Y \sim (\mu, \sigma^2)$  
+
+For a random sample, the observations are:  
+- Statistically independent   
+- Identically distributed with the same mean $\mu$ and variance $\sigma^2$  
+
+---
+
+### Estimating the Mean of a Population 
+
+The most natural estimator of the population mean $\mu$ is the sample mean:
+
+$$\bar{y} = \frac{\sum_{i=1}^N y_i}{N}$$
+
+```{r}
+#| echo: true
+
+mean(hip$y) # variable/vector selection
+mean(hip[,1]) # column selection
+mean(hip[,"y"]) # column name selection
+mean( ~ y, data = hip) # mosaic way
+```
+
+---
+
+### Sampling Variation
+
+The sample mean varies from sample to sample because it's a random variable. This variation is called **sampling variation**.
+
+```{r}
+#| echo: true
+
+# Example C.3 - Sampling variation
+# Draw 10 obs from hip, with replacement
+# set.seed(42) # set seed if you want to reproduce the same sample
+cbind(sample(hip, size = 10, replace=TRUE), resample(hip, size = 10, replace=TRUE)) 
+```
+
+---
+
+### Resampling
+
+Resampling is a technique to repeatedly draw samples from the data, allowing us to estimate the sampling distribution of a statistic.
+
+```{r}
+#| echo: true
+ 
+# Example C.3 - Resampling
+# One sample, n=50, then calculate mean of it
+sample(hip, size = 50, replace=TRUE) %>% summarise(mean=mean(y))
+```
+
+---
+
+```{r}
+#| echo: true
+
+# Tree samples, n=10, note .index indicates a specific sample
+do(3)*sample(hip, size = 10, replace=TRUE)
+```
+
+---
+
+```{r}
+#| echo: true
+
+# Ten samples, n=10, store data, then calculate mean of it
+datasample <- do(10)*sample(hip, size = 10, replace=TRUE)
+mean( ~ y | .index, data = datasample)
+# or
+datasample %>% group_by(.index) %>% summarise(mean = mean(y))
+```
+
+---
+
+```{r}
+#| echo: true  
+
+# or 
+do(10)*mean( ~ y, data = resample(hip, size=10, replace=TRUE))
+```
+
+---
+
+### Properties of the Sample Mean
+
+The sample mean $\bar{Y}$ as an estimator has important properties:
+
+**1. Expected Value of $\bar{Y}$**
+
+The sample mean is an **unbiased estimator**:  
+
+$$E(\bar{Y}) = \mu$$
+This means that on average, the sample mean equals the population mean. It does not systematically overestimate or underestimate $\mu$.
+
+---
+
+**2. Variance of $\bar{Y}$**
+
+$$\text{var}(\bar{Y}) = \frac{\sigma^2}{N}$$
+
+This shows that:  
+- Larger sample sizes lead to smaller variance (more precision)  
+- The sampling variation decreases as $N$ increases  
+
+---
+
+**3. Sampling Distribution**
+
+Let's see how sample size affects the sampling distribution:
+
+```{r}
+#| echo: true
+
+# The sampling distribution of the mean
+# Replicate Figure C.2, with 3 sample sizes, n = 10, 20 and 50
+sample_10 <- do(5000)*mean(~y, data=resample(hip, size=10, replace=TRUE)) 
+sample_20 <- do(5000)*mean(~y, data=resample(hip, size=20, replace=TRUE))
+sample_50 <- do(5000)*mean(~y, data=resample(hip, replace=TRUE)) # n=50, use all
+
+# Population mean
+mean(~y, data=hip)
+mean(~mean, data=sample_10)
+mean(~mean, data=sample_20)
+mean(~mean, data=sample_50)
+```
+
+---
+
+```{r}
+# Add sample size
+sample_10$size <- 10
+sample_20$size <- 20
+sample_50$size <- 50
+
+dframe <- bind_rows(sample_10, sample_20, sample_50)
+
+# Figure C.2, bootstrapped, empirical distribution
+# Larger sample size decreases the sampling distribution of the mean
+gf_dens(~mean, color=~as.factor(size), lwd=2, data=dframe) +
+  labs(title = "Figure C.2 - Empirical Sampling Distribution of the Mean", 
+       x = "Sample Mean", y = "Density", color = "Sample Size") +
+  scale_color_manual(values = c("red", "blue", "green"), 
+                     labels = c("n=10", "n=20", "n=50")) + theme_minimal()
+```
+
+---
+
+### Effect of Sample Size on Precision
+
+The next example demonstrates a fundamental concept in statistics:  
+as the sample size ($N$) increases, the sample mean ($\bar{Y}$) becomes a more precise estimator of the true population mean ($\mu$).
+
+---
+
+## The Statistical Concept
+
+The textbook defines "precision" as the probability that our sample mean $\bar{Y}$ falls within a certain distance (in this case, $\epsilon = 1$ inch) of the true population mean $\mu$.  
+
+Mathematically, we want to find:
+
+$$P(\mu - 1 \le \bar{Y} \le \mu + 1) \quad \text{or} \quad P(|\bar{Y} - \mu| \le 1)$$
+
+---
+
+To solve this, we use the properties of the sampling distribution of the mean. Assuming the population is normal (or $N$ is large enough for the Central Limit Theorem to apply), the sample mean $\bar{Y}$ follows a normal distribution:
+
+$$\bar{Y} \sim N(\mu, \frac{\sigma^2}{N})$$
+
+Where $\sigma^2$ is the population variance and $\sigma/\sqrt{N}$ is the standard error of the mean.
+
+---
+
+We can standardize this by converting $\bar{Y}$ to a standard normal variable $Z$:
+
+$$Z = \frac{\bar{Y} - \mu}{\sigma/\sqrt{N}}$$
+
+Applying this to our probability statement, we divide the inside of the inequality by the standard error:
+
+$$P\left( \frac{-1}{\sigma/\sqrt{N}} \le Z \le \frac{1}{\sigma/\sqrt{N}} \right)$$
+
+---
+
+### Replicating the Textbook Example
+
+The textbook uses a population variance of $\sigma^2 = 10$ and a sample size of $N=40$.
+
+```{r}
+#| echo: true
+
+pop_variance <- 10
+N <- 40
+epsilon <- 1 # The desired margin of error (+/- 1 inch)
+std_error <- sqrt(pop_variance / N) # Standard Error (SE) = sqrt(sigma^2 / N)
+z_boundary <- epsilon / std_error # Z-score boundary for the probability calculation
+# We want P(-z_boundary <= Z <= z_boundary), is P(Z <= z_boundary) - P(Z <= -z_boundary).
+probability <- pnorm(z_boundary) - pnorm(-z_boundary)
+```
+
+---
+
+The R code calculates the key values and prints a result of `0.9545`, which matches the textbook's value and confirms our method.
+
+```{r}
+cat("For N =", N, ":\n")
+cat("Standard Error:", round(std_error, 3), "\n")
+cat("Z-score boundary:", round(z_boundary, 3), "\n")
+cat("Probability:", round(probability, 4), "\n")
+```
+
+---
+
+## Visualizing the Effect for a Range of Sample Sizes
+
+Now, we can generalize this calculation for a range of sample sizes (e.g., from $N=2$ to $N=80$) and plot the relationship. This is where the real insight comes from.
+
+```{r}
+# --- Step 1: Create a data frame for a range of N values ---
+# We'll calculate the probability for each sample size from 2 to 80.
+prob_data <- tibble(N = 2:80) %>%
+  mutate(
+    std_error = sqrt(10 / N),
+    z_boundary = 1 / std_error,
+    Probability = 2 * pnorm(z_boundary) - 1
+    )
+
+# --- Step 2: Create an informative plot ---
+ggplot(prob_data, aes(x = N, y = Probability)) +
+  geom_line(color = "blue", linewidth = 1.2) +
+  # Add a point and labels for the specific N=40 example
+  geom_point(data = filter(prob_data, N == 40), color = "red", size = 4) +
+  annotate("text", x = 45, y = 0.90, label = "N=40, P=0.9545", hjust = 0) +
+  # Add informative titles and labels
+  labs(
+    title = "Precision of the Sample Mean Increases with Sample Size",
+    subtitle = "Probability that the sample mean is within 1 inch of the true mean (σ²=10)",
+    x = "Sample Size (N)",
+    y = "Probability P(|Ȳ - μ| ≤ 1)"
+  ) +
+  scale_y_continuous(limits = c(0, 1), breaks = seq(0, 1, 0.1)) +
+  theme_minimal()
+```
+
+---
+
+## Conclusion and Interpretation
+
+The plot clearly shows that:
+
+  * **Precision Increases with N:** As the sample size ($N$) gets larger, the probability that our sample mean is within 1 inch of the true mean increases towards 100%.
+  * **Diminishing Returns:** The sharpest gains in precision occur with smaller sample sizes. Increasing $N$ from 10 to 20 has a much larger impact than increasing it from 70 to 80. This illustrates the law of diminishing returns when collecting data.
+
+---
+
+## The Central Limit Theorem
+
+Even when the population is not normally distributed, the sample mean becomes approximately normal for large samples:
+
+**Central Limit Theorem**: If $Y_1, \ldots, Y_N$ are independent and identically distributed with mean $\mu$ and variance $\sigma^2$, then:
+
+$$Z_N = \frac{\bar{Y} - \mu}{\sigma/\sqrt{N}} \stackrel{a}{\sim} N(0,1)$$
+
+as $N \to \infty$.
+
+The **sample variance** is the unbiased estimator of $\sigma^2$:
+
+$$\hat{\sigma}^2 = \frac{\sum_{i=1}^N (Y_i - \bar{Y})^2}{N-1}$$
+
+The **standard error** of the sample mean is:
+
+$$\text{se}(\bar{Y}) = \frac{\hat{\sigma}}{\sqrt{N}}$$
+
+```{r}
+# Demonstration of the Central Limit Theorem
+
+#' Takes samples of size n from 4 different distributions and plots histograms of the
+#' means along with a normal curve with matching mean and standard deviation.
+#' Creating the plots for different values of n demonstrates the Central Limit Theorem.
+#' 
+#' Running the function with n=1 will show the populations.
+clt.examp(1)
+```
+
+```{r}
+#' Run the function again with n at higher values to show that the sampling distribution
+#' of the uniform quickly becomes normal and the exponential and 
+#' beta distributions eventually become normal (but much slower than the uniform).
+clt.examp(5)
+```
+
+```{r}
+clt.examp(30)
+```
+
+```{r}
+# ------------------------------------------------------------------------------
+
+#' This next function creates a scatterplot of the data,
+#' then adds colored rectangles between the points and the mean of x and y (both close to zero) to represent
+#' the deviations from mean that the covariance and correlation coefficient is calculated from.
+
+## low correlation
+x <- rnorm(25)
+y <- rnorm(25)
+
+cor(x,y)
+cor.rect.plot(x,y)
+```
+
+```{r}
+## Positive correlation
+x <- rnorm(25)
+y <- x + rnorm(25,3, .5)
+cor(x,y)
+cor.rect.plot(x,y)
+```
+
+```{r}
+## negative correlation
+x <- rnorm(25)
+y <- rnorm(25,10,1.5) - x
+cor(x,y)
+cor.rect.plot(x,y)
+```
+
+```{r}
+## zero correlation but a definite non-linear relationship
+x <- -5:5
+y <- x^2
+cor(x,y)
+cor.rect.plot(x,y)
+```
+
+```{r}
+# ------------------------------------------------------------------------------
+
+# Example C.8 from the book
+ci.examp(mean.sim = 10, sd = sqrt(10), n = 30, reps = 100, conf.level = 0.95, method = "t")
+```
+
+---
+
+## Estimating the Population Variance
+
+```{r}
+#| echo: true
+
+# We'll create a population of 100,000 numbers. Because we have the whole
+# population, we can calculate the true population variance (dividing by N).
+set.seed(42)
+population <- rnorm(100000, mean = 50, sd = 10)
+N <- length(population)
+
+# The TRUE population variance (dividing by N)
+true_pop_variance <- sum((population - mean(population))^2) / N
+cat("True Population Variance (σ²):", true_pop_variance, "\n")
+```
+
+---
+
+```{r}
+#| echo: true
+ 
+# Draw many samples and calculate both estimates
+n <- 20 # Our sample size
+num_samples <- 5000 # Number of experiments to run
+
+# Store the results
+unbiased_estimates <- numeric(num_samples) # Will use n-1
+biased_estimates <- numeric(num_samples)   # Will use n
+
+for (i in 1:num_samples) {
+  # Take a random sample from the population
+  my_sample <- sample(population, size = n)
+    # R's default var() is the unbiased estimate (divides by n-1)
+  unbiased_estimates[i] <- var(my_sample) 
+    # Calculate the biased estimate (divides by n)
+  biased_estimates[i] <- var(my_sample) * (n - 1) / n
+}
+
+# Compare the average of the estimates to the true value
+cat("True Population Variance (σ²):", true_pop_variance, "\n")
+cat("Average of UNBIASED estimates (n-1):", mean(unbiased_estimates), "\n")
+cat("Average of BIASED estimates (n):    ", mean(biased_estimates), "\n")
+```
+
+---
+
+### Higher Moments: Skewness and Kurtosis
+
+-   **Skewness = 0**: symmetric distribution
+-   **Skewness > 0**: right tail is longer
+-   **Skewness < 0**: left tail is longer
+-   **Kurtosis = 3**: normal distribution peakedness (mesokurtic)
+-   **Kurtosis > 3**: more peaked than normal (leptokurtic)
+-   **Kurtosis < 3**: flatter than normal (platykurtic)
+
+The **central moments** of a random variable $Y$ are defined as the expected values of the deviations from the mean, raised to a given power. Let $\mu = E[Y]$ be the mean of the distribution.
+
+---
+
+The $k$-th central moment, $\mu_k$, is defined as:  
+$$\mu_k = E[(Y - \mu)^k]$$
+
+Here are the first four central moments:
+
+-   **First central moment ($\mu_1$)**:
+    $$\mu_1 = E[(Y - \mu)^1] = E[Y] - \mu = \mu - \mu = 0$$
+    The first central moment is always zero by definition.
+
+---
+
+-   **Second central moment ($\mu_2$)**:  
+
+    $$\mu_2 = E[(Y - \mu)^2] = \text{Var}(Y) = \sigma^2$$
+    
+The second central moment is the **variance** of the distribution.
+
+---
+
+-   **Third central moment ($\mu_3$)**:
+    $$\mu_3 = E[(Y - \mu)^3]$$
+    The third central moment is used to define **skewness**. Skewness is the *standardized* third central moment, which makes it a dimensionless quantity. The population skewness, $\text{S}$, is:
+    $$\text{S} = \frac{\mu_3}{\sigma^3}$$
+
+---
+
+-   **Fourth central moment ($\mu_4$)**:
+    $$\mu_4 = E[(Y - \mu)^4]$$
+    The fourth central moment is used to define **kurtosis**. Kurtosis is the *standardized* fourth central moment. The population kurtosis, $\text{K}$, is:
+    $$\text{K} = \frac{\mu_4}{\sigma^4} $$
+
+When we estimate these on data, we use the sample mean and sample size as estimators.
+
+---
+
+## Higher Moments of the Hip Width Data
+
+```{r}
+#| echo: true
+
+# Example C.6 - Higher Moments of Hip Width Data
+sigma_sqiggle <- sqrt(sum((hip$y-mean(hip$y))^2)/length(hip$y))
+mu_3 <- sum((hip$y-mean(hip$y))^3)/length(hip$y)
+mu_4 <- sum((hip$y-mean(hip$y))^4)/length(hip$y)
+# Skewness is a measure of the asymmetry of the distribution
+mu_3/sigma_sqiggle^3
+# Kurtosis is a measure of whether the data are peaked or flat relative to normal
+mu_4/sigma_sqiggle^4
+
+library(moments)
+skewness(hip$y)
+kurtosis(hip$y)
+```
+
+---
+
+```{r}
+#| echo: true
+
+# Density of Hip Width Data - empirical distribution
+gf_density(~y, data=hip) + 
+  labs(title = "Density of Hip Width Data", x = "Hip Width (inches)", y = "Density") +
+  geom_vline(xintercept = mean(hip$y), linetype = "dashed", color = "red") +
+  annotate("text", x = mean(hip$y) + 0.5, y = 0.02, label = paste("Mean:", round(mean(hip$y), 2)), color = "red")
+```
+
+---
+
+## The Normal Distribution
+
+```{r}
+curve(dnorm(x),-3,3, main="The Standard Normal Distribution (pdf)") 
+```
+
+---
+
+```{r}
+curve(pnorm(x),-3,3, main="The Cumulative Standard Normal Distribution (cdf)") 
+```
+
+---
+
+### Using the Normal Distribution for Inference
+
+```{r}
+#| echo: true
+
+# Example C.7
+# The probability that a person has hips wider than 18 inches, P(Y>18)
+# Using the normal distribution
+1-pnorm(18, mean = mean(hip$y), sd = sd(hip$y))
+
+# Using the standard normal 
+1-pnorm((18-mean(hip$y))/sd(hip$y))
+```
+
+---
+
+```{r}
+#| echo: true
+
+# Even nicer
+xpnorm(18, mean = mean(hip$y), sd = sd(hip$y))
+```
+
+---
+
+```{r}
+#| echo: true
+
+# At what hip width would 95% of the population fit?
+qnorm(0.95, mean = mean(hip$y), sd = sd(hip$y))
+
+# Check the probability 
+xpnorm(qnorm(0.95, mean = mean(hip$y), sd=sd(hip$y)), mean = mean(hip$y), sd = sd(hip$y))
+```
+
+---
+
+## Interval Estimation
+
+Point estimates give us a single value, but **interval estimates** provide a range that likely contains the true parameter.
+
+---
+
+## Anatomy of a Confidence Interval
+
+While we see specific formulas for a mean, proportion, or regression coefficient, nearly all two-sided confidence intervals share the same fundamental structure. They are built by taking a point estimate and adding/subtracting a margin of error.
+
+> Point Estimate $\pm$ Margin of Error
+
+This structure can be broken down further into three key components:
+
+---
+
+1.  **The Point Estimate ($\hat{\theta}$)**: Our best guess for the true population parameter ($\theta$) based on our sample data.
+    -   *Example*: The sample mean ($\bar{Y}$) is the point estimate for the population mean ($\mu$).
+
+
+2.  **The Critical Value**: A multiplier that determines the width of the interval based on the desired confidence level (e.g., 95%, 99%). It is derived from the sampling distribution of the estimator.
+    -   *Example*: A $z$-score from the normal distribution or a $t$-score from the $t$-distribution (like $t_{0.975, N-1}$).
+
+---
+
+3.  **The Standard Error ($SE(\hat{\theta})$)**: The standard deviation of the point estimate. It measures the statistical uncertainty or precision of our estimate.
+    -   *Example*: The standard error for the sample mean is $s/\sqrt{N}$.
+
+Putting it all together gives us the universal formula for a confidence interval:
+
+$$\text{Confidence Interval} = \hat{\theta} \pm (\text{Critical Value}) \times SE(\hat{\theta})$$
+
+---
+
+### Confidence Intervals
+
+When $\sigma^2$ is unknown (the usual case), we use the $t$-distribution:
+
+$$t = \frac{\bar{Y} - \mu}{\hat{\sigma}/\sqrt{N}} \sim t_{(N-1)}$$
+
+The 95% confidence interval for $\mu$ is:
+
+$$\bar{Y} \pm t_{0.975,N-1} \cdot \frac{\hat{\sigma}}{\sqrt{N}}$$
+---
+
+```{r}
+# --- 1. Set up parameters ---
+alpha <- 0.05
+critical_value <- qnorm(1 - alpha / 2)
+
+# --- 2. Create separate datasets for different regions ---
+# This approach allows us to shade each region independently
+
+# Full curve for the black outline
+curve_data <- tibble(
+  x = seq(-4, 4, length.out = 1000),
+  y = dnorm(x)
+)
+
+# Center region (acceptance region)
+center_data <- curve_data %>%
+  filter(abs(x) <= critical_value)
+
+# Left tail region
+left_tail_data <- curve_data %>%
+  filter(x <= -critical_value)
+
+# Right tail region  
+right_tail_data <- curve_data %>%
+  filter(x >= critical_value)
+
+# --- 3. Create the plot ---
+ggplot() +
+  
+  # Shade the center region (gray)
+  geom_area(data = center_data, aes(x = x, y = y), 
+            fill = "gray50", alpha = 0.7) +
+  
+  # Shade the tail regions (light blue)
+  geom_area(data = left_tail_data, aes(x = x, y = y), 
+            fill = "lightblue", alpha = 0.7) +
+  geom_area(data = right_tail_data, aes(x = x, y = y), 
+            fill = "lightblue", alpha = 0.7) +
+  
+  # Draw the black curve outline
+  geom_line(data = curve_data, aes(x = x, y = y), size = 1) +
+  
+  # --- 4. Add annotations ---
+  
+  # Label for the central area (1 - α)
+  annotate("text", x = 0, y = 0.2,
+           label = bquote(1 - alpha == .(1 - alpha)), size = 6, color = "white") +
+  
+  # Labels for the rejection regions (α/2)
+  annotate("text", x = -2.8, y = 0.04, 
+           label = bquote(alpha/2 == .(alpha/2)), size = 5) +
+  annotate("text", x = 2.8, y = 0.04, 
+           label = bquote(alpha/2 == .(alpha/2)), size = 5) +
+  
+  # Labels for the critical values
+  annotate("text", x = -critical_value, y = -0.02, 
+           label = paste0("-z[c] == ", round(-critical_value, 2)), parse = TRUE, size = 4) +
+  annotate("text", x = critical_value, y = -0.02, 
+           label = paste0("z[c] == ", round(critical_value, 2)), parse = TRUE, size = 4) +
+  
+  # Arrows pointing to the critical values
+  annotate("segment", 
+           x = -critical_value, y = -0.01, 
+           xend = -critical_value, yend = 0, 
+           arrow = arrow(length = unit(0.2, "cm"))) +
+  annotate("segment", 
+           x = critical_value, y = -0.01, 
+           xend = critical_value, yend = 0, 
+           arrow = arrow(length = unit(0.2, "cm"))) +
+  
+  # --- 5. Final styling ---
+  scale_x_continuous(breaks = -4:4) +
+  labs(
+    title = "Critical Values for a Two-Tailed Test",
+    subtitle = bquote("Standard Normal Distribution N(0,1) with" ~ alpha == .(alpha)),
+    x = NULL,
+    y = NULL
+  ) +
+  theme_classic() +
+  theme(
+    axis.text.y = element_blank(),
+    axis.ticks.y = element_blank(),
+    axis.line.y = element_blank()
+  )
+```
+
+---
+
+### Example: Simulating Confidence Intervals
+
+See own R code for the example.
+
+---
+
+```{r}
+#| echo: true
+  
+# Simulating 10 Confidence Intervals for Hip Width Data
+samples <- do(10)*resample(hip, replace = TRUE)
+table <- samples %>% 
+  group_by(.index) %>%
+  mutate(ci_lower = t.test(y)$conf.int[1], ci_upper = t.test(y)$conf.int[2]) %>%
+  summarize(sample = mean(.index), mean = mean(y), variance = var(y), ci_lower = mean(ci_lower), ci_upper = mean(ci_upper)) %>%
+  select(sample, mean, variance, ci_lower, ci_upper)
+
+table
+```
+
+---
+
+### Example: Hip Data Confidence Interval
+
+```{r}
+#| echo: true
+
+# Example C.10 Interval Estimation Using the Hip Data
+t.test(~y, data = hip, conf.level = 0.95)
+```
+
+---
+
+```{r}
+#| echo: true
+
+# Confidence interval in linear regression with only intercept, is mean of y, using all observations
+confint(lm(y~1 , data=hip))
+```
+
+---
+
+```{r}
+#| echo: true
+
+# Confidence interval using Monte Carlo simulations, or bootstrapping
+trials <- do(10000) * mean(~y, data = resample(hip, replace = TRUE))
+gf_density(~ mean, data = trials, xlab = "Mean Hip Size") + theme_minimal() +
+  labs(title = "Bootstrapped Sampling Distribution of the Mean Hip Size",
+       subtitle = "Based on 10,000 resamples from the hip data") 
+confint(trials, level = 0.95, method = "quantile")
+```
+
+---
+
+## Hypothesis Testing
+
+Hypothesis testing compares a conjecture about a population parameter to sample evidence.
+
+Every hypothesis test requires:  
+
+1. **Null hypothesis** $H_0$: the belief we maintain until convinced otherwise  
+2. **Alternative hypothesis** $H_1$: what we accept if we reject $H_0$  
+3. **Test statistic**: sample information with known distribution under $H_0$  
+4. **Rejection region**: values that are unlikely if $H_0$ is true  
+5. **Conclusion**: reject or fail to reject $H_0$  
+
+---
+
+### Test Statistics
+
+For testing $H_0: \mu = c$, we use:
+
+$$t = \frac{\bar{Y} - c}{\hat{\sigma}/\sqrt{N}} \sim t_{(N-1)}$$
+
+---
+
+### One-Tail Test Example
+
+```{r}
+#| echo: true
+
+library(HH)
+
+# Example C.11 & Example C.13
+# One tail t-test, H0: mu=16.5, H1: mu > 16.5
+t.test(~y, data=hip, alternative='greater', mu=16.5, conf.level=.95)
+```
+
+---
+
+```{r}
+#| echo: true
+
+NTplot(t.test(~y, data=hip, alternative='greater', mu=16.5, conf.level=.95))
+qt(0.95, 49)
+```
+
+---
+
+### Two-Tail Test Example
+
+```{r}
+#| echo: true
+
+# Example C.12 & Example C.14
+# Two tail t-test, H0: mu=17, H1: mu != 17
+t.test(~y, data=hip, alternative='two.sided', mu=17, conf.level=.95)
+```
+
+---
+
+```{r}
+#| echo: true
+
+NTplot(t.test(~y, data=hip, alternative='two.sided', mu=17, conf.level=.95))
+qt(0.975, 49)
+```
+
+---
+
+### P-values
+
+The **p-value** is the probability of observing a test statistic as extreme as or more extreme than what we actually observed, assuming $H_0$ is true.  
+
+**P-value rule**: Reject $H_0$ if p-value $\leq \alpha$  
+
+Read POE5, page 832 & 833 carefully!
+
+---
+
+### Bootstrapping Confidence Intervals
+
+```{r}
+#| echo: true
+
+# Bootstrapping the CI from C.12, N=10000
+head(trials)
+qdata(~mean, c(.025, .975), data = trials) 
+```
+
+---
+
+### Comparing Variances and Means
+
+```{r}
+#| echo: true
+
+# Some useful tests
+x <- rnorm(50, mean = 0, sd = 2)
+y <- rnorm(30, mean = 1, sd = 1)
+
+# Do x and y have the same variance?
+var.test(x, y)
+```
+
+---
+
+```{r}
+#| echo: true
+
+var.test(lm(x ~ 1), lm(y ~ 1))  # The same.
+```  
+
+---
+
+```{r}
+#| echo: true
+
+# Do x and y have the same mean?
+t.test(y,x, var.equal = FALSE)
+t.test(y,x, var.equal = TRUE) # wrong based on F-test above
+```
+
+---
+
+### Testing Normality
+
+```{r}
+#| echo: true
+ 
+# Example C.15
+# Testing the normality of the hip data
+# library(moments)
+
+# H0: Normality
+jarque.test(hip$y)
+```
+
+The **Jarque-Bera test** jointly tests whether skewness = 0 and kurtosis = 3:
+
+$$JB = \frac{N}{6}\left[S^2 + \frac{(K-3)^2}{4}\right] \sim \chi^2_{(2)}$$
+
+---
+
+## Maximum Likelihood Estimation
+
+Maximum likelihood estimation finds parameter values that maximize the probability of observing the data we actually obtained.
+
+---
+
+### The Wheel of Fortune Example
+
+```{r}
+#| echo: true
+
+# C.8 Introduction to Maximum Likelihood Estimation
+# The wheel of fortune, spin 3 times: WIN, WIN, LOSS
+# You do not know which wheel was chosen, and you must pick which wheel was spun
+
+# Wheel A 25% shaded, prob of winning
+A <- c(1/4,1/4,3/4)
+prod(A)
+
+# Wheel B 75% shaded, prob of winning  
+B <- c(3/4,3/4,1/4)
+prod(B)
+
+# Based on the available data
+prod(B)/prod(A) # it is 3 times more likely that wheel B was spun
+```
+
+---
+
+### General Likelihood Function
+
+For any probability $p$ between 0 and 1:
+
+```{r}
+#| echo: true
+
+# Likelihood function L(p) for WIN, WIN, LOSS:
+# L(p)=p x p x (1-p)
+L <- function(p) {p^2-p^3}
+curve(L(x),0,1, main="Figure C.11 - A Likelihood function")
+L(0.5) # Value of the function at p=.5
+```
+
+---
+
+```{r}
+#| echo: true
+
+# Find the derivative of the likelihood function
+D(expression(p^2-p^3),"p")
+
+# The derivative of the likelihood function as an R function
+dL <- function (p) {2*p-3*p^2}
+curve(dL(x), 0,1, main="Derivative of the Likelihood function")
+
+# Where is the derivative equal to zero
+abline(h=0,v=2/3, col="red")
+
+findZeros(dL(p)~p)
+```
+
+---
+
+### Log-Likelihood Function
+
+```{r}
+#| echo: true
+ 
+# Log-Likelihood function
+logL <- function (p) {2*log(p)+log(1-p)}
+curve(logL(x),0,1, main="Log-Likelihood function")
+```
+
+---
+
+The value that maximizes $L(p)$ is $\hat{p}=2/3$, which is the maximum likelihood estimate. That is, of all possible values of $p$, between zero and one, the value that maximizes the probability of observing two wins and one loss (the order does not matter) is $\hat{p}=2/3$.
+
+```{r}
+#| echo: true
+
+# Find the maximum of both functions 
+optimize(L, interval=c(0,1), maximum=TRUE)
+optimize(logL, interval=c(0,1), maximum=TRUE)
+```
+
+---
+
+### Testing Population Proportions
+
+```{r}
+#| echo: true
+
+# Example C.20 Testing a Population Proportion, chi-square value in example C.21
+prop.test(x=75, n=200, p=0.4, alternative ="two.sided", conf.level = 0.95, correct = FALSE)
+```
+
+---
+
+### Asymtotic Test Procedures
+
+**LR (Likelihood-Ratio) tests** are based on the likelihood ratio, which compares the likelihood of the data under two different hypotheses. It estimates both the unrestricted and restricted models.
+
+**The Wald statistic test** measures how close the unrestricted estimates are to satisfying the restrictions under the null hypothesis. It only requires estimation of the unrestricted model, making it convenient when the unrestricted model is easier to estimate.
+
+---
+
+**LM (Lagrange Multiplier) tests** check whether the restrictions are binding by examining the gradient of the log-likelihood function. It only requires estimation of the restricted model, which is advantageous when the restricted model is simpler to estimate.
+
+Read POE5, page 843 - 847
+
+---
+
+## Least Squares Estimation
+
+The sample mean can also be derived as the **least squares estimator** - the value that minimizes the sum of squared deviations:
+
+```{r}
+#| echo: true
+
+# Example C.24 Minimizing the sum of squares, hip data
+a0 <- sum(hip$y^2)
+a1 <- sum(hip$y)
+a2 <- length(hip$y)
+
+S <- function(mu) {a0 - 2*a1*mu + a2*mu^2}
+plotFun(S(mu)~mu, xlim = c(16, 18), main="Figure C.18 - The sum of squares parabola for the hip data")
+```
+
+---
+
+## Kernel Density Estimation
+
+Sometimes we want to estimate the shape of a distribution without assuming a specific functional form:
+
+# R code for Kernel density estimators
+density(hip$y)
+plot(density(hip$y))
+densityplot(~y, data=hip)
+gf_density(~y, data=hip)
+
+**Kernel density estimation** is a nonparametric method that uses smoothing functions to estimate the probability density function of data.
+
+---
+
+#### Important concepts of statistical inference
+- Sampling and estimation: Using sample statistics to estimate population parameters
+- Sampling distributions: Understanding how estimators behave across repeated samples  
+- Confidence intervals: Providing ranges of plausible values for parameters
+- Hypothesis testing: Formal procedures for testing claims about parameters
+- Maximum likelihood estimation: A general principle for finding optimal estimators
