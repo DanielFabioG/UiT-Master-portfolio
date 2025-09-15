@@ -1047,6 +1047,15 @@ $H_0: \beta_2 = 0$, $H_1: \beta_2 \neq 0$
 
 - In this case $c=0$
 
+<<<<<<< HEAD
+- The test statistic is $t= \frac{b2-c}{se(b2)} \sim t_{(1-\alpha/2, N-2)}$
+
+- select $\alpha = 5\%$. The critical value $t_c = t_{(1-0.025, 40-2)} = t(0.975,38)= 2.024$
+
+- Reject $H_0$ if  $t \ge 2.024$ or $t \leq- 2.024$
+
+-  Do not reject $H_0$ if $-2.024 \leq t \leq 2.024$
+=======
 - The test statistic is $t= \frac{b2-c}{se(b2)} \sim t_{(1-\alpha, N-2)}$
 
 - select $\alpha = 5\%$. The critical value $t_c = t_{(1-0.025, 40-2)} = t(0.975,38)= - 2.024$
@@ -1054,13 +1063,18 @@ $H_0: \beta_2 = 0$, $H_1: \beta_2 \neq 0$
 - Thus we will reject the null hypothesis $H_0$ if the calculated value of $t \ge 2.024$ or if $t \leq- 2.024$
 
 - If $-2.024 \leq t \leq 2.024$, we will not reject the null hypothesis
+>>>>>>> 9293bb493c7f615c37a0aa45f86b48e15d57a575
 
 
 ---
 
 **Example 3.6 **...
 
+<<<<<<< HEAD
+- Using the food expenditure data, we have $b_2 = 10.21$  & $se(b2) = 2.09$
+=======
 - Again, using the food expenditure data, we found that $b_2 = 10.21$ with standard error $se(b2) = 2.09$
+>>>>>>> 9293bb493c7f615c37a0aa45f86b48e15d57a575
 
 - The value of the test statistic is: $t= \frac{b2-c}{se(b2)} = \frac{10.21-0}{2.09}= 4.88$
 
@@ -1078,10 +1092,31 @@ $H_0: \beta_2 = 0$, $H_1: \beta_2 \neq 0$
 ```{r,echo=TRUE}
 # Example 3.6
 summary(fit)  # Includes two-tail test for slope
+<<<<<<< HEAD
+```
+
+--- 
+
+## CI approach of testing two-tail hypothesis
+
+### Decision Rule
+
+- If $0$ is inside the confidence interval, you fail to reject $H_0$.
+
+- If $0$ is not inside the confidence interval, you reject $H_0$ at significance level $\alpha$.
+
+```{r,echo=TRUE}
+# Example 3.6
+confint(fit, level=0.95)  # CI for slope
+```
+
+---
+=======
 confint(fit, level=0.95)  # CI for slope
 ```
 
 --- 
+>>>>>>> 9293bb493c7f615c37a0aa45f86b48e15d57a575
   
 ## The p-Value
 
@@ -1093,6 +1128,13 @@ confint(fit, level=0.95)  # CI for slope
 
 ---
 
+<<<<<<< HEAD
+## The p-Value Rule
+
+- $p \leq \alpha$, Reject $H_0$
+
+- $p > \alpha$, do not Reject $H_0$
+=======
 ## The p-Value...
 
 - Reject  $H_0$ when the $p$-value is less than, or equal to, the level of significance $\alpha$. 
@@ -1100,10 +1142,20 @@ confint(fit, level=0.95)  # CI for slope
 - $p \leq \alpha$, reject $H_0$
 
 - $p > \alpha$, do not reject $H_0$
+>>>>>>> 9293bb493c7f615c37a0aa45f86b48e15d57a575
 
 
 ## Example 3.3 (Continued)
 
+<<<<<<< HEAD
+- $H0: β2 ≤ 5.5$ vs $H1: β2 > 5.5$
+
+- The test statistic: $t= \frac{b2-c}{se(b2)} = \frac{10.21-5.5}{2.09}= 2.25$
+
+- The p-value is: $p = P[t_{(38)}\ge 2.25]=1-P[t_{(38)}\leq 2.25] = 1-0.9848=0.0152$
+
+- $\alpha=0.01$,  do not reject $H_0$ 
+=======
 - The null hypothesis is $H0: β2 ≤ 5.5$ vs $H1: β2 > 5.5$
 
 - The value of the test statistic is: $t= \frac{b2-c}{se(b2)} = \frac{10.21-5.5}{2.09}= 2.25$
@@ -1111,6 +1163,7 @@ confint(fit, level=0.95)  # CI for slope
 - The p-value is: $p = P[t_{(38)}\ge 2.25]=1-P[t_{(38)}\leq 2.25] = 1-0.9848=0.0152$
 
 - If $\alpha=0.01$, we do not reject the $H_0$ 
+>>>>>>> 9293bb493c7f615c37a0aa45f86b48e15d57a575
 - Do you reject/not reject $H_0$ if $\alpha = 0.05?$ 
 
 ---
@@ -1151,7 +1204,11 @@ summary(glht(fit, linfct = c("income >= 15")))
 
 - The p-value is: $p = P[t_{(38)}\ge 1.29]+P[t_{(38)}\leq -1.29]= 0.2033$
 
+<<<<<<< HEAD
+- Do not  reject $H_0$ for $\alpha=0.05, 0.10$ or $\alpha=0.20$ b/c $p > \alpha$.
+=======
 - We donot  reject $H_0$ for $\alpha=0.05, 0.10$ or $\alpha=0.20$ b/c $p > \alpha$.
+>>>>>>> 9293bb493c7f615c37a0aa45f86b48e15d57a575
 
 ---
 
@@ -1164,9 +1221,15 @@ summary(glht(fit, linfct = c("income = 7.5")))
 
 ## Example 3.6 (Continued)
 
+<<<<<<< HEAD
+- $H0: β2 = 0$ vs $H1: β2  \neq 0$
+
+- The test statistic: $t= 4.88$
+=======
  The null hypothesis is $H0: β2 = 0$ vs $H1: β2  \neq 0$
 
 - The value of the test statistic is: $t= 4.88$
+>>>>>>> 9293bb493c7f615c37a0aa45f86b48e15d57a575
 
 - The p-value is: $p = P[t_{(38)}\ge 4.88]+P[t_{(38)}\leq -4.88]= 0.000$
 
@@ -1193,11 +1256,103 @@ $$\lambda = c_1 \beta_1 + c_2 \beta_2$$, where $c1$ and $c_2$ are constants that
 
 ## Linear...
 
+<<<<<<< HEAD
+- One example is if we wish to estimate the expected value $E(y|x)$, 
+
+- when $x$ takes some specific value, such as $x=x_0$
+
+- In this case, $c_1 = 1$ & $c_2 = x_0$, so that, 
+
+$$\lambda = c_1\beta_1 +c_2\beta_2= \beta_1 +x_0\beta_2=E(y|x=x_0)$$
+
+- Under assumption SR1-SR5, since the OLS estimators $b_1$ and $b_2$ are BLUE of $\beta_1$ and $\beta_2$,
+
+---
+
+## Linear...
+
+- $\hat{\lambda} = c_1 b_1 + c_2 b_2$ is unbiased estimator of $\lambda = c_1 \beta_1 + c_2 \beta_2$ because: 
+
+=======
 - As an example of a linear combination, if we let  $c_1 = 1$ and $c_2 = x_0$, then we have
+>>>>>>> 9293bb493c7f615c37a0aa45f86b48e15d57a575
 
 $$E(\hat \lambda|x)=E(c_1b_1 | x) + E(c_2b_2 | x)$$
 $$= c_1E(b_1 | x) + c_2E(b_2 | x) $$
 $$= c_1\beta_1 + c_2\beta_2 = \lambda$$
+<<<<<<< HEAD
+
+---
+
+## Linear...
+
+- The variance of $\hat \lambda$ is
+
+$$\text{var} (\hat \lambda | x) = \text{var}(c_1b_1 + c_2b_2|\mathbf x) $$
+$$= c_1^2 \text{var}(b_1|\mathbf x) + c_2^2 \text{var}(b_2|\mathbf x) + 2c_1c_2 \text{cov}(b_1, b_2|\mathbf x)$$
+
+- The standard error:
+
+$$se(\hat \lambda) = \sqrt var(\hat \lambda|x)= \sqrt (\hat{\text{var}}(c_1b_1 + c_2b_2)$$
+
+
+---
+
+## Eg 3.7. Estimating expected food expenditure 
+
+- Estimate the average food weekly food expenditure by hhs with $\$ 2,000$ weekly income.
+
+$$E \text{(Food_exp|Income)}=\beta_1 +\beta_2* \text{Income} $$
+- If Income $=20$, the average food expenditure will be
+
+$$E (\text{Food_exp|Income}=20)=\beta_1 +\beta_2 *20 $$
+
+---
+
+
+## Eg. 3.7 ...
+
+- The estimated model: $$\widehat{Food\_exp} = 83.4160 +10.2096 *\text{Income}$$
+
+- The point estimate of the average weekly food expenditure for a HH with $\$ 2,000$ income is:
+
+$$E (\text{Food_exp|Income}=20)=\widehat{Food\_exp}$$ 
+$$= 83.4160 +10.2096 *20=287.6089$$
+
+---
+
+## Eg. 3.8 Interval estimate of expected food expenditure.
+
+
+- A $100(1-\alpha)\%$ interval estimate for $c_1\beta_1 +c_2\beta_2$ is:
+
+$$ (c_1b_1 + c_2b_2)\pm t_c \text{se}(c_1b_1 + c_2b_2) $$
+- Using our example,a $100(1-\alpha)\%$ interval estimate is given by:
+
+$$(b_1+b_2 *20)\pm t_c \text{se}(b_1 +b_2 *20)$$
+
+
+---
+
+```{r,echo=TRUE}
+# Example: Predict expected value at income=20
+predict(fit, newdata = data.frame(income=20), interval="confidence")
+
+```
+
+```{r,echo=TRUE}
+library(car)
+dmt <- deltaMethod(fit, "b1 + 20*b2 ", parameterNames = c("b1", "b2"))
+dmt 
+
+```
+
+---
+
+## Testing a linear combination of parameters
+
+- A general linear hypothesis involves both parameters, $\beta_1$ and $\beta_2$ and may be stated as:
+=======
 The estimator $\hat \lambda$ is unbiased of $\lambda$.
 
 ---
@@ -1227,6 +1382,7 @@ $$= \sqrt (\hat{\text{var}}(c_1b_1 + c_2b_2) $$
 ## Testing a LInear Combination of Parameters
 
 A general linear hypothesis involves both parameters, $\beta_1$ and $\beta_2$ and may be stated as:
+>>>>>>> 9293bb493c7f615c37a0aa45f86b48e15d57a575
 
 $$H_0:(c_1\beta_1 +c_2 \beta_2)=c_0 $$
 
@@ -1236,7 +1392,13 @@ $$H_0:(c_1\beta_1 +c_2 \beta_2)-c_0=0 $$
 
 ---
 
+<<<<<<< HEAD
+## Alternative hypotheses
+
+- The alternative hypothesis might be any one of the following:
+=======
 The alternative hypothesis might be any one of the following:
+>>>>>>> 9293bb493c7f615c37a0aa45f86b48e15d57a575
 
 $$
 \begin{aligned}
@@ -1247,6 +1409,52 @@ $$
 $$
 
 
+<<<<<<< HEAD
+- The t-statistic is: 
+$$t =\frac{\hat \lambda-\lambda}{se(\hat{\lambda})}= \frac{(c_1b_1 + c_2b2_2) - c_0}{\text{se}(c_1b1_1 + c_2b2_2)} \sim t_{(N-2)}$$
+---
+
+## Testing...
+
+
+- The rejection regions for the one- and two-tail alternatives (i) – (iii) are the same as those described in Section 3.3, and conclusions are interpreted the same way as well
+
+
+
+## Testing a linear combination
+
+
+
+ - Test $H_0: b1 + 20b2 <= 250$ vs $H_1: b1 + 20b2 > 250$
+ 
+ 
+```{r,echo=TRUE}
+# Example 3.9
+library(car)
+dmt <- deltaMethod(fit, "b1 + 20*b2 - 250", parameterNames = c("b1", "b2"))
+dmt
+```
+
+
+```{r,echo=TRUE}
+t_val <- dmt$Estimate / dmt$SE # the test-value 
+t_val 
+```
+
+
+```{r,echo=TRUE}
+# compare the test-value with the critical value 
+t_val > qt(0.95, 38)  # TRUE, hence reject H0
+```
+
+---
+
+
+
+
+
+  
+=======
 The t-statistic is: 
 $$t = \frac{(c_1\beta_1 + c_2\beta_2) - c_0}{\text{se}(c_1\beta_1 + c_2\beta_2)} \sim t_{(N-2)}$$
 
@@ -1274,3 +1482,4 @@ t_val > qt(0.95, 38)  # TRUE -> reject H0
 ```
 
 ---
+>>>>>>> 9293bb493c7f615c37a0aa45f86b48e15d57a575
