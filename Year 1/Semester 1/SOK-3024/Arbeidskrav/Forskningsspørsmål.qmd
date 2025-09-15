@@ -1,0 +1,73 @@
+---
+format: 
+  pdf:
+    geometry:
+      - top=20mm
+      - left=20mm
+      - heightrounded
+    fontsize: 12pt
+    mainfont: Times New Roman
+    documentclass: scrartcl
+    papersize: a4
+    toc-title: "Innholdsfortegnelse"
+    toccolor: black
+    toc-depth: 2
+echo: true
+message: false
+warning: false
+bibliography: dokumentobjekter/texstuff/references.bib
+csl: dokumentobjekter/texstuff/norsk-apa-manual.csl
+crossref: 
+  lof-title: "Figurliste"
+  fig-title: "Figur"
+  lot-title: "Tabelliste"
+  tbl-title: "Tabell"
+header-includes:
+  - \usepackage{wrapfig}
+  - \usepackage{subcaption}
+  - \usepackage{amsmath}
+  - \usepackage{cancel}
+  - \usepackage{hyperref}
+  - \usepackage{tikz}
+  - \usepackage{setspace}
+  - \setstretch{1.5}
+  - \usetikzlibrary{shapes.geometric, arrows, arrows.meta, positioning, calc}
+  - \usepackage{tabularx}
+  - \renewcommand{\maketitle}{}
+  - \usepackage{fancyhdr}
+  - \pagestyle{fancy}
+  - \fancyhf{} 
+  - \fancyhead[L]{\rightmark}
+  - \fancyhead[R]{\thepage}
+  - \fancyfoot[C]{\thepage}
+  - \usepackage{colortbl}
+  - \definecolor{cornflowerblue}{RGB}{100,149,237}
+  - \definecolor{darkblue}{RGB}{115,150,255}
+  - \definecolor{lighterblue}{RGB}{131, 191, 212} 
+  - \definecolor{lightblue}{RGB}{178,211,220}
+keep-tex: false
+nocite: |
+  @*
+---
+
+# Vitenskapelig artikkel
+
+Jeg har valgt artikkelen [The economic consequences of major tax cuts for the rich](https://academic.oup.com/ser/article/20/2/539/6500315) av David Hope og Julian Limberg, publisert i *Socio-Economic Review* i 2022.
+
+# Forskningsspørsmål
+
+Forskningsspørsmål i artikkelen er: 
+
+1. *Hva er de økonomiske konsekvensene av større skattekutt for de rike?*
+
+2. *Hvordan påvirker skattekutt for de rike økonomiske utfall*
+
+Det er ingen direkte oppførte hypoteser i artikkelen.
+
+# Motivasjon
+
+Motivasjonen bak artikkelen er at det finnes lite empiriske studier rundt skatt på rike og økonomisk utvikling, og den forskningen som finnes fra før har blandede resultater.
+
+
+
+
