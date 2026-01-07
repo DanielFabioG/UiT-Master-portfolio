@@ -1,0 +1,41 @@
+---
+title: "Lecture 1"
+format: pdf
+editor: visual
+---
+
+## First lecture
+
+Bla
+
+## Task
+
+From the R package fpp2 in R, load the quarterly beer production data in Australia.
+plot the time series plot of the data
+find the trend, seasonality, and noise of the quarterly beer production
+
+```{r}
+rm(list=ls())
+library(fpp2)
+library(tidyverse)
+
+df <- ausbeer %>%
+  as_tibble() %>%
+  mutate(Year = as.integer(time(ausbeer)),
+         Megalitres = as.numeric(ausbeer))
+
+df %>%
+  ggplot(aes(x=Year, y=Megalitres)) +
+  geom_line() +
+  labs(title="Quarterly Beer Production in Australia",
+       x="Year",
+       y="Beer Production (Megalitres)") +
+  theme_minimal()
+```
+
+```{r}
+# Decompose the time series
+beer_ts <- ts(df$Megalitres, frequency = 4, start = c(1956, 1))
+decomposed_beer <- decompose(beer_ts)
+plot(decomposed_beer)
+```
