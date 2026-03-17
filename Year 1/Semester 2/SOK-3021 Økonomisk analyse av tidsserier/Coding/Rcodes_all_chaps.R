@@ -92,7 +92,6 @@ summary(fit3)
 # In this course, we basically and mostly use 
 # option 3, i.e., arima()
 
-rm(list=ls())
 library(broom)
 library(tidyverse)
 
@@ -113,7 +112,6 @@ usmacro %>%
 
 # Forecasting using ARIMA model 
 
-rm(list = ls())
 library(tidyverse)
 #browseURL("http://www.principlesofeconometrics.com/poe5/data/def/usmacro.def")
 load(url("http://www.principlesofeconometrics.com/poe5/data/rdata/usmacro.rdata"))
@@ -162,7 +160,7 @@ arima(usmacro$u, order = c(2,0,0)) %>% forecast(h=10)
 u <- ts(usmacro$u, frequency = 4, start = c(1948,1))
 arima(u, order = c(2,0,0)) %>% forecast(h=10) 
 
-#arima(u, order = c(2,0,0)) %>% forecast(h=10) %>% autoplot
+arima(u, order = c(2,0,0)) %>% forecast(h=10) %>% autoplot
 
 
 
@@ -399,7 +397,6 @@ grangertest(u ~ g, order = 2, data = usmacro)
 
 # Chapter 12
 
-rm(list=ls())
 library(mosaic)
 
 browseURL("http://www.principlesofeconometrics.com/poe5/data/def/gdp5.def")
@@ -475,8 +472,6 @@ round(mean(window(diff(br.ts), start=c(1985,11), end=c(2016,12))),2)
 
 
 #  Example 12.2 A deterministic trend for wheat yield
-
-rm(list=ls())
 
 browseURL("http://www.principlesofeconometrics.com/poe5/data/def/toody5.def")
 
@@ -670,8 +665,6 @@ par(mfrow=c(1,1))
 
 
 #Example 12.3:  Regression with two random walks
-
-rm(list=ls())
 
 browseURL("http://www.principlesofeconometrics.com/poe5/data/def/spurious.def")
 load(url("http://www.principlesofeconometrics.com/poe5/data/rdata/spurious.rdata"))
