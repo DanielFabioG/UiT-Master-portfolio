@@ -1,9 +1,339 @@
 ---
-title: "The relationshipbetween unemployment rate and economic growth in United Kingdom"
+title: "Unemployment rate and economic growth"
 author: "Daniel G"
 format: 
   revealjs:
     theme: dark
 ---
 
-## Time
+## Introduction
+
+```{r}
+rm(list = ls())
+library(tidyverse)
+library(zoo)
+library(tseries)
+library(forecast)
+library(dynlm)
+library(vars)
+
+tryCatch({
+  unemployment_data <- read_csv("unemployment_data_gbr.csv")
+  gdp_data <- read_csv("gdp_data_gbr.csv")
+}, error = function(err) {
+  
+  library(rsdmx)
+  
+  oecd_url <- "https://sdmx.oecd.org/public/rest/data/OECD.SDD.TPS,DSD_LFS@DF_IALFS_UNE_M,1.0/AUS+AUT+BEL+CAN+CHL+COL+CRI+CZE+DNK+EST+FIN+FRA+DEU+GRC+HUN+ISL+IRL+ISR+ITA+JPN+KOR+LVA+LTU+LUX+MEX+NLD+NZL+NOR+POL+PRT+SVK+SVN+ESP+SWE+CHE+TUR+GBR+USA+G7+EA20+EU27_2020+OECD+BGR+HRV+ROU..._Z.Y._T.Y_GE15..Q?startPeriod=1980-Q1&endPeriod=2025-Q4&dimensionAtObservation=AllDimensions" 
+  oecd_url2 <- "https://sdmx.oecd.org/public/rest/data/OECD.SDD.NAD,DSD_NAMAIN1@DF_QNA_EXPENDITURE_GROWTH_OECD,1.1/Q..GBR...B1GQ......G1.?startPeriod=1985-Q1&dimensionAtObservation=AllDimensions"
+  sdmx_obj <- readSDMX(oecd_url)
+  sdmx_obj2 <- readSDMX(oecd_url2)
+  
+  unemployment_data <- as.data.frame(sdmx_obj)
+  gdp_data <- as.data.frame(sdmx_obj2)
+# save to csv
+write_csv(unemployment_data, "unemployment_data_gbr.csv")  
+write_csv(gdp_data, "gdp_data_gbr.csv")
+}
+)
+
+unemployment_data <-read_csv("unemployment_data_gbr.csv") %>%
+  filter(REF_AREA == "GBR", TIME_PERIOD >= '1985-Q1') %>%
+  rename(unemployment_rate = obsValue) %>%
+mutate(year = as.numeric(substr(TIME_PERIOD, 1, 4)),
+    quarter = as.numeric(substr(TIME_PERIOD, 7, 7))
+  ) %>%
+  dplyr::select(year, quarter, REF_AREA, unemployment_rate)
+
+
+unemployment_ts <- ts(
+  unemployment_data$unemployment_rate,
+  start = c(min(unemployment_data$year), min(unemployment_data$quarter)),
+  frequency = 4
+)
+
+gdp_data <-read_csv("gdp_data_gbr.csv") %>%
+  rename(gdp_rate = obsValue) %>%
+mutate(year = as.numeric(substr(TIME_PERIOD, 1, 4)),
+    quarter = as.numeric(substr(TIME_PERIOD, 7, 7))
+  ) %>%
+  dplyr::select(year, quarter, REF_AREA,gdp_rate)
+
+gdp_ts <- ts(
+  gdp_data$gdp_rate,
+  start = c(min(gdp_data$year), min(gdp_data$quarter)),
+  frequency = 4
+)
+
+# combine the two datasets
+df <- left_join(unemployment_data, gdp_data, by = c("year", "quarter", "REF_AREA")) %>%
+  pivot_longer(
+    cols = c(unemployment_rate, gdp_rate),
+    names_to = "variable",
+    values_to = "value") %>%
+  mutate(variable = recode(variable,
+    unemployment_rate = "Unemployment Rate (%)",
+    gdp_rate = "GDP Growth (%)"
+  ))
+
+
+df$date <- as.Date(as.yearqtr(paste(df$year, df$quarter), "%Y %q"))
+```
+
+- United Kingdom
+
+- Unemployment rate and economic growth
+
+- ARIMA
+
+- Cointegration
+
+- VAR
+
+- Conclusion
+
+:::{.notes}
+
+- The United Kingdom has experienced significant economic changes over the past few decades, including periods of recession and recovery.
+- The unemployment rate and economic growth are closely linked, with changes in one often leading to changes in the other.
+- In this presentation, we will analyze the relationship between the unemployment rate and economic growth in the United Kingdom using various time series analysis techniques, including ARIMA, cointegration, and VECM.
+- We will also discuss the implications of our findings for policymakers and economists.
+
+:::
+
+
+## Data
+
+:::: {.columns}
+
+::: {.column width="50%"}
+
+```{r}
+unemployment_data <- unemployment_data %>%
+  reframe(Year = year, Quarter = quarter, Rate = unemployment_rate)
+
+kableExtra::kable(head(unemployment_data), caption = "Unemployment in the UK")
+```
+
+:::
+
+::: {.column width="50%"}
+
+```{r}
+gdp_data <- gdp_data %>%
+  reframe(Year = year, Quarter = quarter, Rate = gdp_rate)
+
+kableExtra::kable(head(gdp_data), caption = "GDP Growth Rate in the UK")
+```
+
+:::
+:::
+
+:::{.notes}
+- The unemployment data is sourced from the OECD and covers the period from 1985 to 2025, with quarterly observations.
+- The GDP growth rate data is also sourced from the OECD and covers the same period.
+- Both datasets have been cleaned and transformed to facilitate analysis, including the creation of time series objects and the combination of the two datasets for comparative analysis.
+:::
+
+## Data
+
+```{r}
+# Fig
+ggplot(df, aes(x = date, y = value)) +
+  geom_line(color = "steelblue") +
+  facet_wrap(~variable, ncol = 1, scales = "free_y") +
+  labs(
+    title = "",
+    x = "",
+    y = ""
+  ) +
+  theme_bw()+
+  theme(plot.title = element_text(hjust = 0.5, size = 14, face = "bold"),
+        legend.position = "none",
+        axis.text = element_text(size = 10),
+        axis.title = element_text(size = 16))
+```
+
+:::{.notes}
+- The plot shows the trends in the unemployment rate and GDP growth rate in the United Kingdom over the period from 1985 to 2025.
+- The unemployment rate exhibits several peaks and troughs, with notable increases during periods of economic downturn, such as the early 1990s and the late 2000s.
+- The GDP growth rate also shows significant fluctuations, with periods of strong growth followed by periods of contraction, particularly during the global financial crisis of 2008-2009.
+- The visual comparison of the two series suggests a potential inverse relationship, where increases in the unemployment rate may correspond to decreases in GDP growth, and vice versa. This relationship will be further explored using time series analysis techniques in the subsequent sections of the presentation.
+:::
+
+## Data
+
+```{r}
+# Removing COVID-19 period
+df_pre_covid <- df %>%
+  filter(year < 2020)
+
+ggplot(df_pre_covid, aes(x = date, y = value)) +
+  geom_line(color = "steelblue") +
+  facet_wrap(~variable, ncol = 1, scales = "free_y") +
+  labs(
+    title = "",
+    x = "",
+    y = ""
+  ) +
+  theme_bw()+
+  theme(plot.title = element_text(hjust = 0.5, size = 14, face = "bold"),
+        legend.position = "none",
+        axis.text = element_text(size = 10),
+        axis.title = element_text(size = 16))
+```
+
+:::{.notes}
+
+When removing COVID-19:
+
+The economic growth rate from 1985 to 2019 shows a more stable pattern, with periods of expansion and mild contractions. The early 1990s recession is evident, as well as the impact of the 2008 financial crisis, which caused a significant dip in growth. Overall, the data indicates that while the UK economy has experienced fluctuations, it has generally maintained positive growth over this period, while unemployment has trended downward with cyclical spikes during economic downturns.
+:::
+
+## ADF-test
+
+```{r}
+adf_unemployment <- adf.test(unemployment_ts)
+adf_gdp <- adf.test(gdp_ts)
+
+# Test for differenced series if the original series is non-stationary
+adf_unemployment_diff <- adf.test(diff(unemployment_ts))
+adf_unemployment
+adf_gdp
+adf_unemployment_diff
+```
+
+:::{.notes}
+The ADF test results indicate that the unemployment rate is non-stationary, as the p-value is greater than 0.05. However, the GDP growth rate is stationary, with a p-value less than 0.05. After taking the first difference of the unemployment rate, it becomes stationary, as indicated by the significant p-value. Therefore, we conclude that the unemployment rate is integrated of order one I(1), while GDP growth is integrated of order zero I(0). We can now continue with the ARIMA modeling for the unemployment rate and cointegration analysis between the two variables.
+:::
+
+
+## ARIMA
+
+```{r}
+arima_model <- auto.arima(unemployment_ts)
+forecast_arima <- forecast(arima_model, h = 8)
+plot(forecast_arima, main = "", xlab = "", ylab = "Unemployment Rate (%)")
+```
+
+:::{.notes}
+The ARIMA model selected for the unemployment rate is ARIMA(1,1,1), which indicates that the series is differenced once to achieve stationarity, and includes one autoregressive term and one moving average term. The forecast for the next 8 quarters (2 years) shows a continuation of the small upward trend in unemployment, with the forecasted values gradually tapering off. The confidence intervals widen over time, reflecting increasing uncertainty in the forecasts. To evaluate whether including lagged values of economic growth improves forecast accuracy, we can fit a regression model with lagged GDP growth as an additional predictor and compare the forecast performance using metrics such as Mean Absolute Error (MAE) or Root Mean Squared Error (RMSE).
+:::
+
+## ARIMA with lagged GDP growth
+
+```{r}
+# Create a lagged variable for GDP growth
+gdp_lag <- stats::lag(gdp_ts, k = -1)
+# Fit a regression model with lagged GDP growth
+arimax_model <- auto.arima(unemployment_ts, xreg = gdp_lag)
+forecast_arimax <- forecast(arimax_model, xreg = tail(gdp_lag, 8), h = 8)
+plot(forecast_arimax, main = "", xlab = "", ylab = "Unemployment Rate (%)")
+```
+
+:::{.notes}
+The ARIMAX model, which includes the lagged GDP growth as an exogenous variable, may provide improved forecasts if there is a significant relationship between economic growth and unemployment. By comparing the forecast accuracy of the ARIMA and ARIMAX models using MAE or RMSE, we can determine whether the inclusion of lagged GDP growth enhances the predictive performance for the unemployment rate. If the ARIMAX model shows a lower error metric compared to the ARIMA model, it would suggest that economic growth has a meaningful impact on forecasting unemployment. We include GDP growth lagged by one quarter because economic growth typically affects labor markets with a short delay, consistent with Okun’s law.
+::: 
+
+## Accuracy Comparison
+
+
+```{r}
+# Calculate forecast accuracy metrics
+accuracy(arima_model)
+accuracy(arimax_model)
+```
+
+:::{.notes}
+The ARIMAX model, which incorporates lagged GDP growth, shows a lower RMSE and MAE compared to the ARIMA model, indicating improved forecast accuracy. The Mean Absolute Error (MAE) decreased from 0.158 to 0.152, and the Root Mean Squared Error (RMSE) decreased from 0.203 to 0.190. This suggests that including lagged values of economic growth enhances the predictive performance for forecasting the unemployment rate in the UK. Therefore, we can conclude that economic growth has a significant impact on unemployment forecasts, and policymakers should consider this relationship when designing economic policies aimed at reducing unemployment.
+:::
+
+## Accuracy Comparison
+
+```{r}
+autoplot(forecast_arima) +
+  autolayer(forecast_arimax$mean, series="ARIMAX Forecast") +
+  labs(x = "",
+       y = "Unemployment Rate (%)",
+       title = "") +
+  theme_bw()+
+  theme(legend.position = "bottom")+
+  scale_color_manual(values = c("ARIMA Forecast" = "steelblue", "ARIMAX Forecast" = "darkorange"))+
+  theme(plot.title = element_text(hjust = 0.5, size = 14, face = "bold"),
+        legend.position = "none",
+        axis.text = element_text(size = 10),
+        axis.title = element_text(size = 16))
+```
+
+:::{.notes}
+The ARIMAX model, which incorporates lagged GDP growth, shows a lower RMSE and MAE compared to the ARIMA model, indicating improved forecast accuracy. The Mean Absolute Error (MAE) decreased from 0.158 to 0.152, and the Root Mean Squared Error (RMSE) decreased from 0.203 to 0.190. This suggests that including lagged values of economic growth enhances the predictive performance for forecasting the unemployment rate in the UK. Therefore, we can conclude that economic growth has a significant impact on unemployment forecasts, and policymakers should consider this relationship when designing economic policies aimed at reducing unemployment.
+:::
+
+## Cointegration
+
+```{r}
+# Use Engle-Granger two-step method
+eg_model <- dynlm(unemployment_ts ~ gdp_ts)
+e <- resid(eg_model)  # residuals
+
+# Test stationarity of residuals (should be I(0) if cointegrated)
+summary(dynlm(d(e) ~ 0 + L(e,1) + L(d(e),1:2)))
+```
+
+:::{.notes}
+Cointegration analysis is essential to understand whether there is a long-run equilibrium relationship between unemployment and economic growth. Since we have established that the unemployment rate is I(1) and GDP growth is I(0), we can proceed with the Engle-Granger two-step method to test for cointegration.
+
+than the 5% critical value of -3.37. Therefore, we fail to reject the null hypothesis of no cointegration. This indicates that a long-run equilibrium relationship between unemployment and GDP growth is absent, which is consistent with the different orders of integration for the two series (unemployment I(1), GDP I(0)).
+
+As a result, short-term forecasting using ARIMAX models is appropriate for policy analysis.
+:::
+
+## VAR (short run)
+
+```{r}
+data_var <- cbind(unemployment_ts, gdp_ts)
+
+lag_selection <- VARselect(data_var, lag.max = 8, type = "const")
+#lag_selection$selection
+
+# Fit Var model with selected lag
+var_model <- VAR(data_var, p = lag_selection$selection["AIC(n)"], type = "const")
+summary(var_model)
+```
+
+:::{.notes}
+Given that we found no evidence of cointegration between unemployment and GDP growth, we will estimate a Vector Autoregression (VAR) model to explore the short-run dynamics between these two variables. The VAR model allows us to capture the interdependencies and feedback effects without imposing a long-run equilibrium relationship.
+
+The VAR model estimation results indicate that the lagged values of both unemployment and GDP growth have significant effects on the current unemployment rate. Specifically, the first lag of unemployment has a positive and significant coefficient (1.3185), suggesting that higher unemployment in the previous quarter is associated with higher unemployment in the current quarter.
+
+The first lag of GDP growth has a negative and significant coefficient (-0.0429), indicating that higher economic growth in the previous quarter is associated with lower unemployment in the current quarter, consistent with Okun’s Law.
+
+Later lags of GDP or unemployment sometimes are not statistically significant, meaning their effect is weaker or negligible in the short run. The model explains a large portion of the variance in unemployment (R-squared = 0.9925), suggesting that past values of unemployment and GDP growth are strong predictors of current unemployment.
+
+
+:::
+
+
+## Conclusion
+
+- Unemployment rate in UK is non-stationary, while GDP growth rate is stationary.
+
+- Cointegration analysis indicates no long-run equilibrium relationship between unemployment and GDP growth.
+
+- The ARIMAX model with lagged GDP growth provides improved forecast accuracy compared to the ARIMA model alone.
+
+- The VAR model reveals significant short-run dynamics
+
+- Policymakers should consider the short-run interactions between unemployment and economic growth when designing economic policies aimed at reducing unemployment.
+
+:::{.notes}
+
+- The ARIMA model for the unemployment rate indicates that it is non-stationary, while the GDP growth rate is stationary. The ARIMAX model, which includes lagged GDP growth, provides improved forecast accuracy compared to the ARIMA model alone, suggesting that economic growth has a significant impact on unemployment forecasts.
+
+- Cointegration analysis using the Engle-Granger method indicates that there is no long-run equilibrium relationship between unemployment and GDP growth, which is consistent with their different orders of integration.
+
+- The VAR model estimation reveals significant short-run dynamics between the two variables, with lagged unemployment positively affecting current unemployment and lagged GDP growth negatively affecting current unemployment, consistent with Okun’s Law.
+
+- Overall, the findings suggest that while there is no long-run relationship between unemployment and economic growth, there are significant short-run interactions that policymakers should consider when designing economic policies aimed at reducing unemployment.
+
+:::
