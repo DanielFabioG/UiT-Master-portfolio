@@ -1,0 +1,574 @@
+---
+title: "Untitled"
+format: pdf
+---
+
+
+
+
+```{r}
+library(quantmod) # extract stock price data from Yahoo Finance
+library(readxl)   # Import xlsx data
+library(tseries)
+library(FinTS) # for ARCH test
+library(rugarch) # ARCH GARCH model
+library(rmgarch) # DCC GARCH
+library(tidyverse)
+library(gridExtra)
+```
+
+
+```{r}
+
+
+#$ Read and merge data
+###################
+
+# D.Oil <- read_excel("PET_PRI_SPT_S1_D.xls", sheet='tilR') # download the Excel with oil price from Canvas
+# D.Oil = as.data.frame (D.Oil); nrow(D.Oil) # head(D.Oil)                                            
+# D.Oil = D.Oil[complete.cases(D.Oil),]; nrow(D.Oil)
+# 
+
+
+
+```
+
+
+
+```{r}
+
+
+
+
+
+# getSymbols("AKRBP.OL", src = "yahoo", from = "2010-01-01", to = "2025-12-31") # head(XOM); nrow(XOM)
+# AKERBP1 = data.frame(row.names(data.frame(AKRBP.OL)), AKRBP.OL[,6]); head(AKERBP1)
+# names(AKERBP1) = c('Date', 'AKRBP.OL'); row.names(AKERBP1) = NULL
+# AKERBP1 = AKERBP1[complete.cases(AKERBP1),]; nrow(AKERBP1)
+
+
+
+
+```
+
+
+```{r}
+
+
+# getSymbols("SCATC.OL", src = "yahoo", from = "2010-01-01", to = "2025-12-31") # head(XOM); nrow(XOM)
+# SCAT1 = data.frame(row.names(data.frame(SCATC.OL)), SCATC.OL[,6]); head(SCAT1)
+# names(SCAT1) = c('Date', 'SCATC.OL'); row.names(SCAT1) = NULL
+# SCAT1 = SCAT1[complete.cases(SCAT1),]; nrow(SCAT1)
+# 
+# scat <- SCAT1 %>% 
+#   rename(scat = SCATC.OL)
+# 
+# 
+# akerbp <- AKERBP1 %>% 
+#   rename(akerbp = AKRBP.OL) %>% 
+#   filter(Date >= "2014-10-02")
+# 
+# 
+# kronekurs <- read_delim("https://data.norges-bank.no/api/data/EXR/B.USD.NOK.SP?format=csv&bom=include&apisrc=nbi&startPeriod=2014-10-02&endPeriod=2025-12-30&locale=no", 
+#     delim = ";", escape_double = FALSE, col_names = FALSE, 
+#     trim_ws = TRUE)
+# 
+# 
+# kronekurs <- kronekurs %>% 
+#   select(15,16) %>% 
+#   rename(Date = X15, Dollarkurs = X16) %>%
+#   slice(-1) %>% 
+#   mutate(Dollarkurs = as.numeric(gsub(",", ".", Dollarkurs)))
+#   
+#   
+# 
+# 
+# 
+# nrow(akerbp); nrow(scat);  nrow(D.Oil);  nrow(kronekurs)
+# 
+# 
+# D.Oil$Date = as.character(D.Oil$Date)
+# 
+# Da <- akerbp %>% 
+#   left_join(scat, by = "Date") %>% 
+#   left_join(kronekurs, by = "Date") %>% 
+#   left_join(D.Oil, by = "Date") 
+# 
+# 
+# Da %>% 
+#   summarise_all(~ sum(is.na(.)))
+# 
+# 
+# 
+# 
+# Da <- Da %>% 
+#   mutate(Oil = Oil * Dollarkurs) %>% 
+#   select(-Dollarkurs) %>% 
+#   filter(!is.na(Oil)) %>% 
+#   filter(Date != "2020-04-20")
+
+
+#na count
+# Da %>% 
+#   summarise_all(~ sum(is.na(.)))
+# 
+# 
+# 
+# 
+# Da2 <- Da
+# summary(Da2)
+
+
+```
+
+
+```{r}
+
+
+#$ Calculate returns
+###################
+
+# X0 = diff(log(Da2$Oil))*100;
+# Y0 = diff(log(Da2$akerbp))*100;
+# Z0 = diff(log(Da2$scat))*100;
+# Date = as.Date(Da2$Date[2:nrow(Da2)])
+# 
+# Da3 = data.frame(Date,X0, Y0, Z0);
+# summary(Da3)
+# 
+
+
+
+```
+
+
+```{r}
+
+
+#$ delete outliers
+# sort(Da3$X)[1:50]
+# sort(Da3$X, decreasing = TRUE)[1:50]
+# 
+# Da4 = Da3[Da3$X0 < 10 & Da3$X0 > -10,]
+# Da4 = Da4[Da4$Y0 < 10 & Da4$Y0 > -10,]
+# Da4 = Da4[Da4$Z0 < 10 & Da4$Z0 > -10,]
+# 
+# summary(Da4)
+
+
+
+```
+
+
+```{r}
+
+
+# Convert variables into a Time Series Object
+#$ Cannot use TS for the reason of missing values
+###################
+# write_csv(Da2, "Da2.csv")
+# write_csv(Da4, "Da4.csv")
+read_csv(Da2, "Da2.csv")
+read_csv(Da4, "Da4.csv")
+
+
+
+
+X <- zoo(Da4$X0, order.by = Da4$Date)
+X <- as.xts(X)
+
+Y <- zoo(Da4$Y0, order.by = Da4$Date)
+Y <- as.xts(Y)
+
+Z <- zoo(Da4$Z0, order.by = Da4$Date)
+Z <- as.xts(Z)
+
+
+
+
+
+```
+
+
+```{r}
+
+
+#$ Time-invarying variance and correlation
+##################
+
+var(Y);
+var(Z)
+cor(Y,X);
+cor(Z,X)
+
+
+```
+
+
+
+
+```{r}
+
+
+
+
+# par(mar = c(5, 5, 4, 2)+ 0.1)
+# plot(X, type = "l", main="log returns Oil price", xlab="",col = "black",); #abline(h=0, col="red", lwd=2)
+# plot(Y, type = "l", main="log returns Oil company", xlab="",col = "blue",); #abline(h=0, col="red", lwd=2)
+# plot(Z, type = "l", main="log returns New Energy company", xlab="",col = "green",); #abline(h=0, col="red", lwd=2)
+
+
+plot1 <- ggplot(X, aes(x = index(X), y = X)) +
+  geom_line(color = "black") +
+  labs(title = "Log Returns of Oil Price in NOK", x = "", y = "Log Return") +
+  scale_x_date(expand = c(0,0)) + 
+  theme_bw() 
+
+plot2 <- ggplot(Y, aes(x = index(Y), y = Y)) +
+  geom_line(color = "blue") +
+  labs(title = "Log Returns of Oil Company Aker BP", x = "", y = "Log Return") +
+  scale_x_date(expand = c(0,0)) + 
+  theme_bw()
+
+plot3 <- ggplot(Z, aes(x = index(Z), y = Z)) +
+  geom_line(color = "green") +
+  labs(title = "Log Returns of Energy Company Scatec", x = "Date", y = "Log Return") +
+  scale_x_date(expand = c(0,0)) + 
+  theme_bw()
+
+
+
+
+grid.arrange(plot1, plot2, plot3, ncol = 1)
+
+
+
+
+
+Da2 %>% 
+  mutate(Date = as.Date(Date)) %>% 
+  ggplot(aes(x = Date)) +
+  geom_line(aes(y = Oil, color = "Oil price")) +
+  geom_line(aes(y = akerbp, color="Aker BP")) +
+  geom_line(aes(y = scat, color = "Scatec")) +
+  labs(title = "Oil Price, Aker BP and Scatec in NOK", x = "Date", y = "Price i nok") +
+  scale_color_manual(values = c("black", "blue", "green")) +
+  theme_bw()+#legend no title
+  labs(color = "")
+
+
+
+
+```
+
+
+```{r}
+
+
+##  ARCH Test
+##  H0: There are no ARCH effects in the residuals.
+
+arch_test <- ArchTest(X, lags = 5); print(arch_test)
+arch_test <- ArchTest(Y, lags = 5); print(arch_test)
+arch_test <- ArchTest(Z, lags = 5); print(arch_test)
+
+
+
+
+```
+
+
+```{r}
+##  ARCH model
+###################
+
+arch_spec <- ugarchspec(variance.model = list(model = "sGARCH", garchOrder = c(1, 0)), 
+                        mean.model = list(armaOrder = c(0, 0), include.mean = TRUE))
+
+arch_fit <- ugarchfit(spec = arch_spec, data = Y)
+print(arch_fit)
+```
+
+
+
+
+```{r}
+
+cond_var <- sigma(arch_fit)^2
+plot( cond_var, type = "l", col = "blue",
+      main = "Conditional Variance (ARCH model)", xlab = "")
+
+
+
+```
+
+```{r}
+arch_fit <- ugarchfit(spec = arch_spec, data = Z)
+print(arch_fit)
+
+```
+
+```{r}
+cond_var <- sigma(arch_fit)^2; summary(cond_var)
+plot( cond_var, type = "l", col = "green",
+      main = "Conditional Variance (ARCH model)", xlab = "")
+```
+
+
+
+```{r}
+
+# GARCH Model
+###################
+
+garch_spec <- ugarchspec(variance.model = list(model = "sGARCH", garchOrder = c(1, 1)), 
+                         mean.model = list(armaOrder = c(0, 0), include.mean = TRUE))
+     # sGARCH = standard GARCH
+
+garch_fit <- ugarchfit(spec = garch_spec, data = Y)
+print(garch_fit)
+cond_var <- sigma(garch_fit)^2
+plot( cond_var, type = "l", col = "blue",
+      main = "Conditional Variance (GARCH model)", xlab = "")
+
+
+
+
+
+
+```
+
+
+```{r}
+
+garch_fit <- ugarchfit(spec = garch_spec, data = Z)
+print(garch_fit)
+
+```
+
+```{r}
+cond_var <- sigma(garch_fit)^2
+plot( cond_var, type = "l", col = "green",
+      main = "Conditional Variance (GARCH model)", xlab = "")
+
+```
+
+
+
+```{r}
+
+
+
+# T-GARCH Model
+###################
+
+tgarch_spec <- ugarchspec(variance.model = list(model = "fGARCH", submodel = "TGARCH", garchOrder = c(1, 1)), 
+                          mean.model = list(armaOrder = c(0, 0), include.mean = TRUE))
+
+tgarch_fit <- ugarchfit(spec = tgarch_spec, data = Y)
+print(tgarch_fit)
+cond_var <- sigma(tgarch_fit)^2
+plot( cond_var, type = "l", col = "blue",
+      main = "Conditional Variance (T-GARCH model)", xlab = "")
+
+
+tgarch_fit <- ugarchfit(spec = tgarch_spec, data = Z)
+print(tgarch_fit)
+cond_var <- sigma(tgarch_fit)^2
+plot( cond_var, type = "l", col = "green",
+      main = "Conditional Variance (T-GARCH model)", xlab = "")
+
+
+
+```
+
+
+## DCC-GARCH Model
+
+
+```{r}
+
+# DCC-GARCH Model
+###################
+
+# Define a univariate GARCH(1,1)
+uspec <- ugarchspec(
+  variance.model = list(model = "sGARCH", garchOrder = c(1, 1)),
+  mean.model = list(armaOrder = c(0, 0), include.mean = TRUE)
+)
+
+# Define the multivariate DCC-GARCH
+dccspec <- dccspec(
+  uspec = multispec(replicate(2, uspec)),  
+  dccOrder = c(1, 1),                      
+  distribution = "mvnorm"             
+)
+
+# Fit the DCC-GARCH model for X and Y
+dccfit <- dccfit(dccspec, data = data.frame(X,Y))
+print(dccfit)
+dcc_cor <- data.frame ( rcor(dccfit)[1,2,]); # head(dcc_cor)
+
+XY <- zoo(dcc_cor[,1], order.by = Date)
+XY <- as.xts(XY)
+
+
+
+
+```
+
+
+
+
+
+
+```{r}
+
+
+# Fig
+par(mar = c(5, 5, 4, 2)+ 0.1)
+plot( XY, type = "l", col = "blue",
+     main = "Dynamic Conditional Correlation", xlab = "Date", ylab = "Correlation")
+
+
+
+
+
+```
+
+
+
+
+
+```{r}
+
+
+# Fit the DCC-GARCH model for X and Z
+dccfit <- dccfit(dccspec, data = data.frame(X,Z))
+print(dccfit)
+dcc_cor <- data.frame ( rcor(dccfit)[1,2,]); # head(dcc_cor)
+
+
+
+
+```
+
+
+
+```{r}
+
+
+# Fig
+XZ <- zoo(dcc_cor[,1], order.by = Date)
+XZ <- as.xts(XZ)
+
+par(mar = c(5, 5, 4, 2)+ 0.1)
+plot( XZ, type = "l", col = "green",
+      main = "Dynamic Conditional Correlation", xlab = "Date", ylab = "Correlation")
+
+
+
+
+```
+
+
+
+
+
+
+
+
+
+## under her e DCC på nytt men vi tar med student t istedet for normalfordeling
+
+
+
+
+
+
+
+
+```{r}
+
+# DCC-GARCH Model
+###################
+
+# Define a univariate GARCH(1,1)
+uspec <- ugarchspec(
+  variance.model = list(model = "sGARCH", garchOrder = c(1, 1)),
+  mean.model = list(armaOrder = c(0, 0), include.mean = TRUE)
+)
+
+# Define the multivariate DCC-GARCH
+dccspec <- dccspec(
+  uspec = multispec(replicate(2, uspec)),  
+  dccOrder = c(1, 1),                      
+  distribution = "mvt"             
+)
+
+# Fit the DCC-GARCH model for X and Y
+dccfit <- dccfit(dccspec, data = data.frame(X,Y))
+print(dccfit)
+dcc_cor <- data.frame ( rcor(dccfit)[1,2,]); # head(dcc_cor)
+
+XY <- zoo(dcc_cor[,1], order.by = Date)
+XY <- as.xts(XY)
+
+
+
+
+```
+
+
+
+
+
+
+```{r}
+
+
+# Fig
+par(mar = c(5, 5, 4, 2)+ 0.1)
+plot( XY, type = "l", col = "blue",
+     main = "Dynamic Conditional Correlation", xlab = "Date", ylab = "Correlation")
+
+
+
+
+
+```
+
+
+
+
+
+```{r}
+
+
+# Fit the DCC-GARCH model for X and Z
+dccfit <- dccfit(dccspec, data = data.frame(X,Z))
+print(dccfit)
+dcc_cor <- data.frame ( rcor(dccfit)[1,2,]); # head(dcc_cor)
+
+
+
+
+```
+
+
+
+```{r}
+
+
+# Fig
+XZ <- zoo(dcc_cor[,1], order.by = Date)
+XZ <- as.xts(XZ)
+
+par(mar = c(5, 5, 4, 2)+ 0.1)
+plot( XZ, type = "l", col = "green",
+      main = "Dynamic Conditional Correlation", xlab = "Date", ylab = "Correlation")
+
+
+
+
+```

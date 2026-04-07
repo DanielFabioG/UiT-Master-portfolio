@@ -1,0 +1,310 @@
+---
+title: "SOK-3022 Presentation"
+subtitle: "CO2 VS GDP"
+date: last-modified
+date-format: "DD-MM-YYYY"
+echo: false
+warning: false
+format: 
+  revealjs:
+    auto-stretch: false
+    theme: moon
+    smaller: true
+---
+
+only gdp shows up in the  short term error term, but for firms to adjust to the long run, they need to adjust their financial development. So the financial sector is the one that adjusts in the short run, while GDP is the one that adjusts in the long run.
+
+
+
+```{r}
+
+rm(list=ls()) # Clear the environment
+# Install/Load necessary libraries
+library(readxl)   # Import xlsx data
+library(tseries)  # For ADF test
+library(car)      # Choose lag in VAR
+library(urca)     # For Johansen test
+library(vars)     # For VECM wo SE
+library(tsDyn)    # For VECM with SE for Alpha
+```
+                                                      
+```{r, output = FALSE}
+D.CI <- read_excel("Lecture1/other/Data_World_Development_Indicators.xlsx", sheet='tilR');
+D.CI = as.data.frame (D.CI); nrow(D.CI) # head(D.CI)
+```
+```{r, output = FALSE}
+# wtf
+D.CI1 = D.CI[D.CI[,4]%in%c('EN.GHG.CO2.MT.CE.AR5','NE.GDI.TOTL.KD','NY.GDP.MKTP.KD'), ]; nrow(D.CI)
+D.CI1[,1]=D.CI1[,3]=NULL
+
+varialbe = as.factor(D.CI1[,2]); levels(varialbe)
+levels(varialbe) = c('CO2','Fin','GDP')                                                   
+D.CI1[,2] = varialbe
+
+names(D.CI1) = c('Country','Series',c(1960:2023))# str(D.CI1)
+
+D.CI2 = reshape(D.CI1, direction ='long', varying=list (names(D.CI1)[3:ncol(D.CI1)] ), v.names = "v", idvar = c("Country",'Series'), timevar='Year', time=1960:2023)
+D.CI3 = reshape(D.CI2, idvar=c("Country","Year"), v.names=c('v'), timevar=c("Series"),direction="wide") ;  # head(D.CI3)
+```
+
+```{r, output = FALSE}
+run_analysis <- function(country_name){
+
+  Dat = D.CI3[D.CI3$Country==country_name,]
+
+  Dat = Dat[Dat$v.CO2>0, ]
+  Dat = Dat[Dat$v.GDP>0, ]
+  Dat = Dat[Dat$v.Fin>0, ]
+
+  CO2 = log(Dat$v.CO2)
+  FD  = log(Dat$v.Fin)
+  GDP = log(Dat$v.GDP)
+
+  cat("==========", country_name, "==========\n")
+
+  # ADF
+  print(adf.test(CO2))
+  print(adf.test(FD))
+  print(adf.test(GDP))
+
+  # Johansen (3 variable system)
+  print(VARselect(data.frame(CO2,FD,GDP), lag.max = 10, type = "trend")$selection)
+
+  J_test <- ca.jo(data.frame(CO2,FD,GDP), 
+                  type = "trace", 
+                  ecdet = "const", 
+                  K = 2)
+
+  print(summary(J_test))
+
+  # VECM
+  Vecm = VECM(data.frame(CO2,FD,GDP), 
+              lag = 1, 
+              r=1, 
+              estim = "ML",
+              include='const')
+
+  print(summary(Vecm))
+
+  return(Vecm)
+}
+```
+
+## Introduction
+
+**The relationship between CO2 and GDP**
+
+We are going to explore the relationship between CO2 emissions and GDP using time series data. The analysis will be conducted using the Johansen cointegration test and Vector Error Correction Model (VECM) to understand both the long-run and short-run dynamics between these variables.
+
+**Developing countries**
+
+Further we are choosing to look at developing countries, to see if the relationship between CO2 emissions and GDP differs from that of developed countries. This is important as developing countries may have different economic structures and environmental policies that could influence this relationship.
+
+**China and USA**
+
+The two countries we will focus on are for non-OECD: China and the for OECD country we are choosing USA. China is the largest emitter of CO2 and has experienced rapid economic growth, while the USA has a long history of industrialization and is also a major emitter.
+
+## Stationarity & Cointegration Results
+
+**Unit Root (ADF Test in Levels)**
+
+| Variable | China p-value | USA p-value | Conclusion |
+|-----------|--------------|------------|------------|
+| CO2       | 0.7475      | 0.9680     | Non-stationary |
+| FD        | 0.9169      | 0.4441     | Non-stationary |
+| GDP       | 0.9328      | 0.9579     | Non-stationary |
+
+➡ All variables are I(1), justifying Johansen cointegration analysis.
+
+---
+
+**Johansen Trace Test (3-variable system)**
+
+| Hypothesis | China Test Stat | 5% Critical | Cointegration? |
+|------------|----------------|------------|----------------|
+| r = 0      | 37.24         | 34.91      | YES |
+| r ≤ 1      | 15.26         | 19.96      | NO |
+
+China → **1 cointegrating relationship**
+
+| Hypothesis | USA Test Stat | 5% Critical | Cointegration? |
+|------------|--------------|------------|----------------|
+| r = 0      | 80.17        | 34.91      | YES |
+| r ≤ 1      | 19.17        | 19.96      | Borderline |
+
+USA → **At least 1 strong cointegrating relationship**
+
+```{r, output = FALSE}
+Vecm_CHN <- run_analysis("CHN")
+```
+
+
+
+
+
+## Long-Run Relationship (VECM β)
+
+**China**
+
+Long-run equation:
+
+CO2 = 0.738 FD − 0.210 GDP
+
+| Variable | Coefficient | Interpretation |
+|-----------|------------|---------------|
+| FD        | +0.738     | Financial development increases CO2 |
+| GDP       | −0.210     | GDP slightly reduces CO2 (possible efficiency effect) |
+
+---
+
+**USA**
+
+Long-run equation:
+
+CO2 = 9.645 FD − 12.031 GDP
+
+| Variable | Coefficient | Interpretation |
+|-----------|------------|---------------|
+| FD        | +9.645     | Strong financial-emission link |
+| GDP       | −12.031    | Strong negative GDP effect |
+
+
+```{r, output = FALSE}
+Vecm_USA <- run_analysis("USA")
+```
+
+
+
+
+## Short-Run Adjustment (Error Correction Term)
+
+**China**
+
+| Equation | ECT Coefficient | Significant? | Interpretation |
+|-----------|----------------|-------------|----------------|
+| ΔCO2     | -0.293        | No          | Weak adjustment |
+| ΔFD      | -0.035        | No          | No adjustment |
+| ΔGDP     | +0.242        | YES (*)     | GDP adjusts |
+
+China → GDP adjusts back to long-run equilibrium.
+
+---
+
+**USA**
+
+| Equation | ECT Coefficient | Significant? | Interpretation |
+|-----------|----------------|-------------|----------------|
+| ΔCO2     | 0.013         | No          | No adjustment |
+| ΔFD      | 0.061         | YES (**)    | Financial sector adjusts |
+| ΔGDP     | 0.004         | No          | No adjustment |
+
+USA → Financial development adjusts back to equilibrium.
+
+
+
+
+
+
+## The EKC Hypothesis
+
+**Testing for Non-Linearity**
+
+To test the Environmental Kuznets Curve (EKC), we move from a linear model to a quadratic one. We expect an inverted U-shape: emissions should rise with income at first, then fall after reaching a certain "turning point."
+
+**The 4-Variable VECM Equation:**
+
+$$ \log(CO_2) = \beta_1 \log(GDP) + \beta_2 \log(GDP)^2 + \beta_3 \log(FD) + \epsilon $$
+
+
+::: {.notes}
+**The Success Criteria:**
+
+1.  **$\beta_1$ (Linear GDP):** Must be positive (Emissions rise with growth).
+2.  **$\beta_2$ (Squared GDP):** Must be negative (Growth eventually reduces emissions).
+3.  **Turning Point:** Calculated as $exp(-\beta_1 / 2\beta_2)$.
+
+
+In this section, we expand our analysis. The standard VECM assumes a constant relationship. However, the EKC theory suggests that the relationship changes as a country develops. By adding the squared GDP term, we can mathematically find the peak of the pollution curve. We are looking for a positive coefficient on GDP and a negative one on GDP squared.
+:::
+
+## EKC Results: China
+
+**Point Estimates & Significance**
+
+| Variable | Coefficient ($\beta$) | p-value | Result |
+|-----------|--------------------|---------|--------|
+| GDP | +49.87 | 0.000 | **Highly Significant** |
+| GDP² | -0.839 | 0.161 | **Insignificant** |
+
+
+::: {.notes}
+
+**Turning Point:** ~$8.15 Trillion USD
+
+**Interpretation:**
+China exhibits the classic inverted U-shape visually. However, the squared term is not statistically significant ($p > 0.10$). This suggests China is hovering near its peak, but the "downward slope" isn't yet a statistically proven structural certainty in this timeframe.
+
+For China, the math gives us a very clear peak. The turning point is roughly 8 trillion dollars, which China passed in the early 2010s. Visually, the curve is perfect. However, look at the p-value for GDP squared: 0.16. In strict econometrics, this means we can't be 95% sure the downward trend is permanent yet. China has reached the peak, but it hasn't stayed on the downward slope long enough for the model to call it "significant."
+:::
+
+## EKC Results: USA
+
+**Point Estimates & Significance**
+
+| Variable | Coefficient ($\beta$) | p-value | Result |
+|-----------|--------------------|---------|--------|
+| GDP | +27.53 | 0.000 | **Highly Significant** |
+| GDP² | -0.536 | 0.648 | trash |
+
+
+::: {.notes}
+**Interpretation:**
+The USA fails the EKC statistical test completely ($p = 0.64$). 
+
+**Why?** The US likely hit its emissions peak decades ago (1970s/80s). Because the majority of our modern dataset captures the US already "decoupling" growth from emissions, the relationship appears linear and downward-sloping rather than a "U-shape."
+
+
+The USA result is a great example of why theory doesn't always match modern data. The p-value here is 0.64, which is a total "stop sign." This happens because the US is a "post-peak" economy. Since we don't see the "climb" and the "fall" in the same modern dataset, the model doesn't see a curve—it just sees a straight line going down. This suggests the EKC is best observed in countries currently undergoing industrial transition.
+:::
+
+## Pretending it was significant. China
+
+```{r}
+library(tidyverse)
+
+Dat_CHN <- D.CI3[D.CI3$Country == 'CHN', ]
+Dat_CHN <- Dat_CHN[Dat_CHN$v.CO2 > 0, ]
+Dat_CHN <- Dat_CHN[Dat_CHN$v.GDP > 0, ]
+Dat_CHN <- Dat_CHN[Dat_CHN$v.Fin > 0, ]
+
+GDP_CHN <- log(Dat_CHN$v.GDP)
+CO2_CHN <- log(Dat_CHN$v.CO2)
+
+
+beta_GDP_CHN <- 49.87076
+beta_GDP2_CHN <- -0.8387387
+turning_point_CHN <- -beta_GDP_CHN / (2 * beta_GDP2_CHN)
+
+
+chinadf <- data.frame(
+  GDP_CHN = GDP_CHN, 
+  CO2_CHN = CO2_CHN, 
+  beta_GDP_CHN = beta_GDP_CHN, 
+  beta_GDP2_CHN = beta_GDP2_CHN
+)
+
+
+chinadf <- chinadf %>% 
+  mutate(co2_predicted_CHN = (beta_GDP_CHN * GDP_CHN) + (beta_GDP2_CHN * (GDP_CHN^2)))
+
+chinadf %>% 
+  ggplot(aes(x = GDP_CHN, y = co2_predicted_CHN)) +
+     geom_line(color = "blue", linewidth = 1) +
+     geom_vline(xintercept = turning_point_CHN, color = "red", linetype = "dashed", linewidth = 1) +
+     labs(title = "EKC (China)", x = "Log of GDP", y = "Partial Effect on Log of CO2") +
+     theme_bw() +
+     theme(plot.title = element_text(hjust = 0.5)) +
+     annotate("text", x = turning_point_CHN, y = max(chinadf$co2_predicted_CHN), label = "Turning Point", color = "red", vjust = -1, size = 3.5)
+```
+
+

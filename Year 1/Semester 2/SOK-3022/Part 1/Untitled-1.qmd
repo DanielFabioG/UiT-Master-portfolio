@@ -1,0 +1,522 @@
+---
+title: "Untitled"
+format: pdf
+---
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+```{r}
+###  VECM
+                                                      ######################
+                                                      
+
+# Install/Load necessary libraries
+                                                      
+library(readxl)   # Import xlsx data
+library(tseries)  # For ADF test
+library(car)      # Choose lag in VAR
+library(urca)     # For Johansen test
+library(vars)     # For VECM wo SE
+library(tsDyn)    # For VECM with SE for Alpha
+
+                                                      
+##########
+##### Import data and clean/organize data
+##########
+                                                      
+# D.CI <- read.csv("path_to_your_file/Data name.csv")
+# or                                                       
+# D.CI <- read_excel("path_to_your_file/Data name.xlsx", sheet='name of the sheet')
+# D.CI = as.data.frame (D.CI); nrow(D.CI) # head(D.CI)                                           
+                                                      
+D.CI =  read_excel("Data_World_Development_Indicators.xlsx",sheet='tilR');
+D.CI = as.data.frame (D.CI); nrow(D.CI) # head(D.CI)                                           
+
+D.CI1 = D.CI[D.CI[,4]%in%c('EN.GHG.CO2.MT.CE.AR5','NE.GDI.TOTL.KD','NY.GDP.MKTP.KD'), ]; nrow(D.CI)
+D.CI1[,1]=D.CI1[,3]=NULL
+
+varialbe = as.factor(D.CI1[,2]); levels(varialbe)
+levels(varialbe) = c('CO2','Fin','GDP')                                                    
+D.CI1[,2] = varialbe
+
+names(D.CI1) = c('Country','Series',c(1960:2023))# str(D.CI1)
+
+D.CI2 = reshape(D.CI1, direction ='long', varying=list (names(D.CI1)[3:ncol(D.CI1)] ), v.names = "v", idvar = c("Country",'Series'), timevar='Year', time=1960:2023)
+D.CI3 = reshape(D.CI2, idvar=c("Country","Year"), v.names=c('v'), timevar=c("Series"),direction="wide") ;  # head(D.CI3)
+
+
+################################################################################
+##########
+##### Choose a sample country - USA
+##########
+################################################################################
+
+unique(D.CI3$Country)
+
+Dat = D.CI3[D.CI3$Country=='USA',]; nrow(Dat) # select a country
+    sort(Dat$Year)
+Dat = Dat
+
+Dat = Dat[Dat$v.CO2>0, ]; nrow(Dat)
+Dat = Dat[Dat$v.GDP>0, ]; nrow(Dat)
+Dat = Dat[Dat$v.Fin>0, ]; nrow(Dat)
+
+unique(Dat$Year)
+
+Year = Dat$Year
+CO2 = log(Dat$v.CO2); summary(CO2)
+FD = log(Dat$v.Fin); summary(FD)
+GDP = log(Dat$v.GDP); summary(GDP)
+GDP2 = GDP^2; summary(GDP2) # NEW: Squared GDP for EKC test
+
+
+#$ ADF Test for stationary
+####################
+
+adf.test(CO2)
+adf.test(FD)
+adf.test(GDP)
+adf.test(GDP2) # NEW: ADF for squared GDP
+
+
+#$ Johansen Test
+#################
+
+#$ Johansen: CO2 and FD  # ?ca.jo()
+J_test1 <- ca.jo(data.frame(CO2,FD), type = "eigen", ecdet = c("const"), K = 2); summary(J_test1)
+J_test2 <- ca.jo(data.frame(CO2,FD), type = "trace", ecdet = c("const"), K = 2); summary(J_test2)
+
+
+#$ Johansen: CO2 and GDP
+J_test3 <- ca.jo(data.frame(CO2,GDP), type = "eigen", ecdet = c("const"), K = 2); summary(J_test3)
+J_test4 <- ca.jo(data.frame(CO2,GDP), type = "trace", ecdet = c("const"), K = 2); summary(J_test4)
+
+
+#$ Johansen: FD and GDP
+J_test5 <- ca.jo(data.frame(FD,GDP), type = "eigen", ecdet = c("const"), K = 2); summary(J_test5)
+J_test6 <- ca.jo(data.frame(FD,GDP), type = "trace", ecdet = c("const"), K = 2); summary(J_test6)
+
+
+#$ Johansen: CO2, FD, and GDP
+
+VARselect(data.frame(CO2,FD,GDP), lag.max = 10, type = "trend")$selection
+
+J_test7 <- ca.jo(data.frame(CO2,FD,GDP), type = "eigen", ecdet = c("const"), K = 2); summary(J_test7)
+J_test8 <- ca.jo(data.frame(CO2,FD,GDP), type = "trace", ecdet = c("const"), K = 2); summary(J_test8)
+
+
+#$ NEW: Johansen: CO2, FD, GDP, and GDP2 (EKC Test)
+
+VARselect(data.frame(CO2,FD,GDP,GDP2), lag.max = 10, type = "trend")$selection
+
+J_test9 <- ca.jo(data.frame(CO2,FD,GDP,GDP2), type = "eigen", ecdet = c("const"), K = 2); summary(J_test9)
+J_test10 <- ca.jo(data.frame(CO2,FD,GDP,GDP2), type = "trace", ecdet = c("const"), K = 2); summary(J_test10)
+
+
+
+#$ VECM Function CO2 and FD
+#################
+
+Vecm2 = VECM(data.frame(CO2,FD), lag = 1, r=1, estim = "ML",include=c('const') )# ?VECM()
+summary(Vecm2)
+
+#$ long-run, beta
+
+round(Vecm2$model.specific$beta,3)
+cov = cov( residuals (Vecm2))
+t_stats <- Vecm2$model.specific$beta / sqrt(diag(cov))
+p_values <- 2 * (1 - pt(abs(t_stats), df = length(CO2) - 2))
+p_values
+
+#$ short-run, alpha
+
+round ( summary(Vecm2)$coefMat, 3)
+
+
+#$ VECM for CO2, FD, and GDP
+#################
+
+Vecm2 = VECM(data.frame(CO2,FD,GDP), lag = 1, r=1, estim = "ML",include=c('const') )# ?VECM()
+summary(Vecm2)
+
+#$ long-run, beta
+
+round(Vecm2$model.specific$beta,3)
+cov = cov( residuals (Vecm2))
+t_stats <- Vecm2$model.specific$beta / sqrt(diag(cov))
+p_values <- 2 * (1 - pt(abs(t_stats), df = length(CO2) - 2))
+p_values
+
+#$ short-run, alpha
+
+round ( summary(Vecm2)$coefMat, 3)
+
+
+#$ NEW: VECM for CO2, FD, GDP, and GDP2 (EKC Test)
+#################
+
+Vecm_EKC = VECM(data.frame(CO2,FD,GDP,GDP2), lag = 1, r=1, estim = "ML",include=c('const') )
+summary(Vecm_EKC)
+
+#$ long-run, beta
+
+round(Vecm_EKC$model.specific$beta,3)
+cov_ekc = cov( residuals (Vecm_EKC))
+t_stats_ekc <- Vecm_EKC$model.specific$beta / sqrt(diag(cov_ekc))
+p_values_ekc <- 2 * (1 - pt(abs(t_stats_ekc), df = length(CO2) - 2))
+p_values_ekc
+
+#$ short-run, alpha
+
+round ( summary(Vecm_EKC)$coefMat, 3)
+
+
+
+################################################################################
+##########
+##### Choose a sample country - CHINA
+##########
+################################################################################
+
+Dat_CHN = D.CI3[D.CI3$Country=='CHN',]; nrow(Dat_CHN) # select China
+    sort(Dat_CHN$Year)
+Dat_CHN = Dat_CHN
+
+Dat_CHN = Dat_CHN[Dat_CHN$v.CO2>0, ]; nrow(Dat_CHN)
+Dat_CHN = Dat_CHN[Dat_CHN$v.GDP>0, ]; nrow(Dat_CHN)
+Dat_CHN = Dat_CHN[Dat_CHN$v.Fin>0, ]; nrow(Dat_CHN)
+
+unique(Dat_CHN$Year)
+
+Year_CHN = Dat_CHN$Year
+CO2_CHN = log(Dat_CHN$v.CO2); summary(CO2_CHN)
+FD_CHN = log(Dat_CHN$v.Fin); summary(FD_CHN)
+GDP_CHN = log(Dat_CHN$v.GDP); summary(GDP_CHN)
+GDP2_CHN = GDP_CHN^2; summary(GDP2_CHN) # NEW: Squared GDP for EKC test
+
+
+#$ ADF Test for stationary
+####################
+
+adf.test(CO2_CHN)
+adf.test(FD_CHN)
+adf.test(GDP_CHN)
+adf.test(GDP2_CHN) # NEW: ADF for squared GDP
+
+
+#$ Johansen Test
+#################
+
+#$ Johansen: CO2 and FD  # ?ca.jo()
+J_test1_CHN <- ca.jo(data.frame(CO2_CHN,FD_CHN), type = "eigen", ecdet = c("const"), K = 2); summary(J_test1_CHN)
+J_test2_CHN <- ca.jo(data.frame(CO2_CHN,FD_CHN), type = "trace", ecdet = c("const"), K = 2); summary(J_test2_CHN)
+
+
+#$ Johansen: CO2 and GDP
+J_test3_CHN <- ca.jo(data.frame(CO2_CHN,GDP_CHN), type = "eigen", ecdet = c("const"), K = 2); summary(J_test3_CHN)
+J_test4_CHN <- ca.jo(data.frame(CO2_CHN,GDP_CHN), type = "trace", ecdet = c("const"), K = 2); summary(J_test4_CHN)
+
+
+#$ Johansen: FD and GDP
+J_test5_CHN <- ca.jo(data.frame(FD_CHN,GDP_CHN), type = "eigen", ecdet = c("const"), K = 2); summary(J_test5_CHN)
+J_test6_CHN <- ca.jo(data.frame(FD_CHN,GDP_CHN), type = "trace", ecdet = c("const"), K = 2); summary(J_test6_CHN)
+
+
+#$ Johansen: CO2, FD, and GDP
+
+VARselect(data.frame(CO2_CHN,FD_CHN,GDP_CHN), lag.max = 10, type = "trend")$selection
+
+J_test7_CHN <- ca.jo(data.frame(CO2_CHN,FD_CHN,GDP_CHN), type = "eigen", ecdet = c("const"), K = 2); summary(J_test7_CHN)
+J_test8_CHN <- ca.jo(data.frame(CO2_CHN,FD_CHN,GDP_CHN), type = "trace", ecdet = c("const"), K = 2); summary(J_test8_CHN)
+
+
+#$ NEW: Johansen: CO2, FD, GDP, and GDP2 (EKC Test)
+
+VARselect(data.frame(CO2_CHN,FD_CHN,GDP_CHN,GDP2_CHN), lag.max = 10, type = "trend")$selection
+
+J_test9_CHN <- ca.jo(data.frame(CO2_CHN,FD_CHN,GDP_CHN,GDP2_CHN), type = "eigen", ecdet = c("const"), K = 2); summary(J_test9_CHN)
+J_test10_CHN <- ca.jo(data.frame(CO2_CHN,FD_CHN,GDP_CHN,GDP2_CHN), type = "trace", ecdet = c("const"), K = 2); summary(J_test10_CHN)
+
+
+
+#$ VECM Function CO2 and FD
+#################
+
+Vecm2_CHN = VECM(data.frame(CO2_CHN,FD_CHN), lag = 1, r=1, estim = "ML",include=c('const') )# ?VECM()
+summary(Vecm2_CHN)
+
+#$ long-run, beta
+
+round(Vecm2_CHN$model.specific$beta,3)
+cov_CHN = cov( residuals (Vecm2_CHN))
+t_stats_CHN <- Vecm2_CHN$model.specific$beta / sqrt(diag(cov_CHN))
+p_values_CHN <- 2 * (1 - pt(abs(t_stats_CHN), df = length(CO2_CHN) - 2))
+p_values_CHN
+
+#$ short-run, alpha
+
+round ( summary(Vecm2_CHN)$coefMat, 3)
+
+
+#$ VECM for CO2, FD, and GDP
+#################
+
+Vecm3_CHN = VECM(data.frame(CO2_CHN,FD_CHN,GDP_CHN), lag = 1, r=1, estim = "ML",include=c('const') )# ?VECM()
+summary(Vecm3_CHN)
+
+#$ long-run, beta
+
+round(Vecm3_CHN$model.specific$beta,3)
+cov3_CHN = cov( residuals (Vecm3_CHN))
+t_stats3_CHN <- Vecm3_CHN$model.specific$beta / sqrt(diag(cov3_CHN))
+p_values3_CHN <- 2 * (1 - pt(abs(t_stats3_CHN), df = length(CO2_CHN) - 2))
+p_values3_CHN
+
+#$ short-run, alpha
+
+round ( summary(Vecm3_CHN)$coefMat, 3)
+
+
+#$ NEW: VECM for CO2, FD, GDP, and GDP2 (EKC Test)
+#################
+
+Vecm_EKC_CHN = VECM(data.frame(CO2_CHN,FD_CHN,GDP_CHN,GDP2_CHN), lag = 1, r=1, estim = "ML",include=c('const') )
+summary(Vecm_EKC_CHN)
+
+#$ long-run, beta
+
+round(Vecm_EKC_CHN$model.specific$beta,3)
+cov_ekc_CHN = cov( residuals (Vecm_EKC_CHN))
+t_stats_ekc_CHN <- Vecm_EKC_CHN$model.specific$beta / sqrt(diag(cov_ekc_CHN))
+p_values_ekc_CHN <- 2 * (1 - pt(abs(t_stats_ekc_CHN), df = length(CO2_CHN) - 2))
+p_values_ekc_CHN
+
+#$ short-run, alpha
+
+round ( summary(Vecm_EKC_CHN)$coefMat, 3)
+```
+
+
+
+
+
+
+
+
+
+```{r}
+#$ Plotting the EKC Curve and Finding the Turning Point (USA)
+#############################################################
+
+# 1. Extract the long-run coefficients (betas) from the VECM
+# tsDyn orders these as: [1] CO2, [2] FD, [3] GDP, [4] GDP2
+betas_USA <- Vecm_EKC$model.specific$beta
+
+# 2. Flip the signs to isolate CO2 on the left side of the equation
+beta_GDP_USA  <- -betas_USA[3] 
+beta_GDP2_USA <- -betas_USA[4]
+
+cat("GDP Coefficient (b1):", beta_GDP_USA, "\n")
+cat("GDP Squared Coefficient (b2):", beta_GDP2_USA, "\n")
+
+# For the EKC to exist, b1 should be positive and b2 should be negative.
+
+# 3. Calculate the Turning Point
+# The formula for the peak of a parabola is: -b1 / (2 * b2)
+turning_point_USA <- -beta_GDP_USA / (2 * beta_GDP2_USA)
+cat("The GDP turning point (in log form) is:", turning_point_USA, "\n")
+cat("The GDP turning point (in absolute value) is:", exp(turning_point_USA), "\n")
+
+# 4. Plot the Curve
+# Create a sequence of GDP values from the minimum to the maximum in your sample
+gdp_seq_USA <- seq(min(GDP), max(GDP), length.out = 100)
+
+# Calculate the partial predicted CO2 based ONLY on GDP and GDP squared 
+# (holding FD constant to visualize just the GDP-CO2 relationship)
+co2_predicted_USA <- (beta_GDP_USA * gdp_seq_USA) + (beta_GDP2_USA * (gdp_seq_USA^2))
+
+# Generate the plot
+plot(gdp_seq_USA, co2_predicted_USA, 
+     type = "l", 
+     col = "blue", 
+     lwd = 2,
+     main = "Environmental Kuznets Curve (USA)",
+     xlab = "Log of GDP",
+     ylab = "Partial Effect on Log of CO2")
+
+# Add a vertical line to show where the turning point occurs
+abline(v = turning_point_USA, col = "red", lty = 2, lwd = 2)
+legend("topright", legend=c("EKC Curve", "Turning Point"), col=c("blue", "red"), lty=c(1,2), lwd=2)
+
+```
+
+
+
+
+```{r}
+#$ Plotting the EKC Curve and Finding the Turning Point (CHN)
+#############################################################
+
+# 1. Extract the long-run coefficients (betas) from the VECM
+# tsDyn orders these as: [1] CO2, [2] FD, [3] GDP, [4] GDP2
+betas_CHN <- Vecm_EKC_CHN$model.specific$beta
+
+# 2. Flip the signs to isolate CO2 on the left side of the equation
+beta_GDP_CHN  <- -betas_CHN[3] 
+beta_GDP2_CHN <- -betas_CHN[4]
+
+cat("GDP Coefficient (b1):", beta_GDP_CHN, "\n")
+cat("GDP Squared Coefficient (b2):", beta_GDP2_CHN, "\n")
+
+# For the EKC to exist, b1 should be positive and b2 should be negative.
+
+# 3. Calculate the Turning Point
+# The formula for the peak of a parabola is: -b1 / (2 * b2)
+turning_point_CHN <- -beta_GDP_CHN / (2 * beta_GDP2_CHN)
+cat("The GDP turning point (in log form) is:", turning_point_CHN, "\n")
+cat("The GDP turning point (in absolute value) is:", exp(turning_point_CHN), "\n")
+
+# 4. Plot the Curve
+# Create a sequence of GDP values from the minimum to the maximum in your sample
+gdp_seq_CHN <- seq(min(GDP_CHN), max(GDP_CHN), length.out = 100)
+
+# Calculate the partial predicted CO2 based ONLY on GDP and GDP squared 
+# (holding FD constant to visualize just the GDP-CO2 relationship)
+co2_predicted_CHN <- (beta_GDP_CHN * gdp_seq_CHN) + (beta_GDP2_CHN * (gdp_seq_CHN^2))
+
+# Generate the plot
+plot(gdp_seq_CHN, co2_predicted_CHN, 
+     type = "l", 
+     col = "blue", 
+     lwd = 2,
+     main = "Environmental Kuznets Curve (CHN)",
+     xlab = "Log of GDP",
+     ylab = "Partial Effect on Log of CO2")
+
+# Add a vertical line to show where the turning point occurs
+abline(v = turning_point_CHN, col = "red", lty = 2, lwd = 2)
+legend("topright", legend=c("EKC Curve", "Turning Point"), col=c("blue", "red"), lty=c(1,2), lwd=2)
+
+```
+
+
+
+
+```{r}
+
+betas_USA <- Vecm_EKC$model.specific$beta
+beta_GDP_USA  <- -betas_USA[3] 
+beta_GDP2_USA <- -betas_USA[4]
+turning_point_USA <- -beta_GDP_USA / (2 * beta_GDP2_USA)
+
+usadf <- data.frame(GDP_USA = GDP, CO2_USA = CO2, beta_GDP_USA = beta_GDP_USA, beta_GDP2_USA = beta_GDP2_USA)
+gdp_seq_USA <- seq(min(GDP), max(GDP), length.out = 100)
+co2_predicted_USA <- (beta_GDP_USA * gdp_seq_USA) + (beta_GDP2_USA * (gdp_seq_USA^2))
+
+usadf <- usadf %>% 
+  mutate(co2_predicted_USA = (beta_GDP_USA * GDP) + (beta_GDP2_USA * (GDP^2)))
+
+
+
+# ==========================================
+# PLOT 2: CHINA
+# ==========================================
+betas_CHN <- Vecm_EKC_CHN$model.specific$beta
+beta_GDP_CHN  <- -betas_CHN[3] 
+beta_GDP2_CHN <- -betas_CHN[4]
+turning_point_CHN <- -beta_GDP_CHN / (2 * beta_GDP2_CHN)
+
+
+chinadf <- data.frame(GDP_CHN = GDP_CHN, CO2_CHN = CO2_CHN, beta_GDP_CHN = beta_GDP_CHN, beta_GDP2_CHN = beta_GDP2_CHN)
+
+chinadf <- chinadf %>% 
+  mutate(co2_predicted_CHN = (beta_GDP_CHN * GDP_CHN) + (beta_GDP2_CHN * (GDP_CHN^2)))
+
+
+library(tidyverse)
+
+usadf %>% 
+  ggplot(aes(x = GDP, y = co2_predicted_USA)) +
+     geom_line(color = "blue", linewidth = 1) +
+     geom_vline(xintercept = turning_point_USA, color = "red", linetype = "dashed", size = 1) +
+     labs(title = "EKC (USA)", x = "Log of GDP", y = "Partial Effect on Log of CO2") +
+     theme_bw() +
+     theme(plot.title = element_text(hjust = 0.5)) +
+     annotate("text", x = turning_point_USA, y = max(co2_predicted_USA), label = "Turning Point", color = "red", vjust = -1, size = 3.5)
+
+
+
+chinadf %>% 
+  ggplot(aes(x = GDP_CHN, y = co2_predicted_CHN)) +
+     geom_line(color = "blue", linewidth = 1) +
+     geom_vline(xintercept = turning_point_CHN, color = "red", linetype = "dashed", size = 1) +
+     labs(title = "EKC (China)", x = "Log of GDP", y = "Partial Effect on Log of CO2") +
+     theme_bw() +
+     theme(plot.title = element_text(hjust = 0.5)) +
+     annotate("text", x = turning_point_CHN, y = max(co2_predicted_CHN), label = "Turning Point", color = "red", vjust = -1, size = 3.5)
+
+
+```
+
+
+
+
+```{r}
+p_values_ekc
+
+p_values_ekc_CHN
+
+```
+
+
+
+
+```{r}
+# 1. Create a theoretical sequence that goes far enough left to see the turning point (e.g., from 25 to 31)
+gdp_seq_theoretical_USA <- seq(25, 31, length.out = 200)
+
+# 2. Build a new dataframe for plotting the curve
+usadf_plot <- data.frame(
+  GDP_Seq = gdp_seq_theoretical_USA,
+  co2_predicted_USA = (beta_GDP_USA * gdp_seq_theoretical_USA) + (beta_GDP2_USA * (gdp_seq_theoretical_USA^2))
+)
+
+
+usadf_plot %>% 
+  ggplot(aes(x = GDP_Seq, y = co2_predicted_USA)) +
+     # Add a shaded box to show where the actual USA data (1960-2023) sits
+     annotate("rect", xmin = min(GDP), xmax = max(GDP), ymin = -Inf, ymax = Inf, 
+              alpha = 0.2, fill = "green") +
+     annotate("text", x = 30, y = min(usadf_plot$co2_predicted_USA), 
+              label = "Actual Data\nRange", color = "darkgreen", size = 3.5) +
+     
+     # Draw the curve and turning point
+     geom_line(color = "blue", linewidth = 1) +
+     geom_vline(xintercept = turning_point_USA, color = "red", linetype = "dashed", size = 1) +
+     labs(title = "EKC (USA) - Theoretical Curve vs Observed Data", 
+          x = "Log of GDP", 
+          y = "Partial Effect on Log of CO2") +
+     theme_bw() +
+     theme(plot.title = element_text(hjust = 0.5)) +
+     annotate("text", x = turning_point_USA, y = max(usadf_plot$co2_predicted_USA), 
+              label = "Turning Point (25.7)", color = "red", vjust = -1, hjust = -0.1, size = 3.5)
+```
+

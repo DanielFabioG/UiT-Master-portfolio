@@ -1,0 +1,533 @@
+---
+title: "GARCH"
+format: 
+  revealjs:
+    theme: dark
+---
+
+
+## Aker BP og Scatec
+
+- Aker BP, oljeselskap
+
+- Scatec, fornybar energi selskap
+
+- **Hypothesis 3 (H3):**
+
+*The conditional correlation between oil price changes and stock returns of the new energy company exhibits both short-term and long-term persistence.*
+
+::: {.notes}
+
+To selskaper som er notert på Oslo Børs.Aker BP er et oljeselskap som produserer olje og gass
+
+Mens Scatec er et fornybar energi selskap som hovedsakelig fokuserer på utbygging av solcellepanel etc
+
+Vi ser hovedsakelig på disse to da de er norske og vi har gode data.
+
+Interessant å se på spesielt siden Scatec er et fornybar energi selskap som kanskje ikke er like påvirket av oljeprisen som Aker BP er.
+
+scatec og grønne selskap spesielt sensitive for renteendringer som kan komme av inflasjonspress fra olje. 
+
+:::
+
+## Aker BP og Scatec 
+
+```{r}
+
+library(quantmod) # extract stock price data from Yahoo Finance
+library(readxl)   # Import xlsx data
+library(tseries)
+library(FinTS) # for ARCH test
+library(rugarch) # ARCH GARCH model
+library(rmgarch) # DCC GARCH
+library(tidyverse)
+library(gridExtra)
+
+
+Da2 <- read_csv("Da2.csv") 
+
+Da4 <- read_csv("Da4.csv")
+
+
+Da2 %>% 
+  mutate(Date = as.Date(Date)) %>% 
+  ggplot(aes(x = Date)) +
+  geom_line(aes(y = Oil, color = "Oil price")) +
+  geom_line(aes(y = akerbp, color="Aker BP")) +
+  geom_line(aes(y = scat, color = "Scatec")) +
+  labs(title = "Oil Price, Aker BP and Scatec in NOK", x = "Date", y = "Price i nok") +
+  scale_color_manual(values = c("black", "blue", "green")) +
+  theme_bw()+#legend no title
+  labs(color = "")
+
+
+
+```
+
+
+::: {.notes}
+
+The adjusted closing prices are used to account for dividends and stock splits. The dataset begins on the 10th of october 2014. 
+
+The crude oil price is converted to NOK using the exchange rate provided by Norges Bank to standardize the currency across all variables.
+
+
+Bruker adjusted close pga utbytte og slikt. data fra 10 oktober 2014 ved valg av scatec og akerbp siden scatec på børs først da. 
+
+
+vi tar også med kronekurs fra norges bank for å konvertere oljeprisen vi er gitt om til kroner som selskapene er i.
+
+Ganget oljepris med kronekurs og droppet så kronekurs variabel så alle priser er i nok
+
+
+Fra observasjoner. 
+
+84 NA fra olje, 1 fra kronekurs Har da 2737obs fra 2823 etter fjerning av 2020-04-20 negativ oljepris. Så fjernet koden ekstremverdier 
+::: 
+
+
+## Akerbp og Scatec free Y
+
+```{r}
+Da2 <- read_csv("Da2.csv") %>%
+  mutate(Date = as.Date(Date)) %>%
+  rename('Aker BP' = akerbp, Scatec = scat) %>%
+  pivot_longer(cols = c(Oil, 'Aker BP', Scatec), names_to = "Variable", values_to = "Price")
+
+
+
+Da2 %>% 
+  ggplot(aes(x = Date, y = Price)) +
+  facet_wrap(~ Variable, ncol = 1, scales = "free_y") +
+  geom_line(aes(color = Variable)) +
+  labs(title = "Aker BP, Oil, and Scatec in NOK", x = "", y = "NOK") +
+  theme_bw()+#legend no title
+  labs(color = "")+
+  theme(legend.position = "none")
+```
+
+
+
+::: {.notes}
+
+The graphs separate the adjusted closing prices into individual panels with independent y-axes. This configuration isolates the price movements of Aker BP, Oil, and Scatec.
+
+
+
+Bruker adjusted close pga utbytte og slikt. data fra 10 oktober 2014 ved valg av scatec og akerbp siden scatec på børs først da. 
+
+
+vi tar også med kronekurs fra norges bank for å konvertere oljeprisen vi er gitt om til kroner som selskapene er i.
+
+Ganget oljepris med kronekurs og droppet så kronekurs variabel så alle priser er i nok
+
+
+Fra observasjoner. 
+
+84 NA fra olje, 1 fra kronekurs Har da 2737obs fra 2823 etter fjerning av 2020-04-20 negativ oljepris. Så fjernet koden ekstremverdier 
+::: 
+
+
+## Volatility clustering
+
+```{r}
+
+
+X <- zoo(Da4$X0, order.by = Da4$Date)
+X <- as.xts(X)
+
+Y <- zoo(Da4$Y0, order.by = Da4$Date)
+Y <- as.xts(Y)
+
+Z <- zoo(Da4$Z0, order.by = Da4$Date)
+Z <- as.xts(Z)
+
+
+
+plot1 <- ggplot(X, aes(x = index(X), y = X)) +
+  geom_line(color = "black") +
+  labs(title = "Log Returns of Oil Price in NOK", x = "", y = "Log Return") +
+  scale_x_date(expand = c(0,0)) + 
+  theme_bw() 
+
+plot2 <- ggplot(Y, aes(x = index(Y), y = Y)) +
+  geom_line(color = "blue") +
+  labs(title = "Log Returns of Oil Company Aker BP", x = "", y = "Log Return") +
+  scale_x_date(expand = c(0,0)) + 
+  theme_bw()
+
+plot3 <- ggplot(Z, aes(x = index(Z), y = Z)) +
+  geom_line(color = "green") +
+  labs(title = "Log Returns of Energy Company Scatec", x = "Date", y = "Log Return") +
+  scale_x_date(expand = c(0,0)) + 
+  theme_bw()
+
+
+
+grid.arrange(plot1, plot2, plot3, ncol = 1)
+
+
+
+```
+
+::: {.notes}
+
+The plots display the log returns for the oil price, Aker BP, and Scatec. The data exhibits volatility clustering, characterized by periods of high variance alternating with periods of low variance. This clustering violates the assumption of constant variance. Time-varying conditional variance requires modeling via ARCH and GARCH specifications.
+
+So its not stationary. 
+
+
+Can already see here that there are periods of volatility clustering so we can tell that the volatility is not constant over time. 
+
+
+AI-KABEL:
+
+Når vi ser på disse grafene av log-avkastning, er det spesielt én ting vi legger merke til: volatility clustering.
+
+Dette betyr at perioder med høy volatilitet – altså store svingninger – har en tendens til å komme i klumper, og det samme gjelder perioder med lav volatilitet.
+
+Vi ser for eksempel at det er rolige perioder hvor avkastningen ligger tett rundt null, etterfulgt av perioder med store hopp opp og ned.
+
+Dette bryter med antakelsen om konstant varians, som vi ofte har i enkle modeller som OLS.
+
+I stedet tyder dette på at variansen er tidsavhengig, noe som er akkurat det ARCH- og GARCH-modeller er laget for å fange opp.
+
+For alle tre seriene – oljepris, Aker BP og Scatec – observerer vi denne typen mønster, men det kan virke som at aksjene har enda tydeligere klynger enn oljeprisen.
+
+Dette gir en første indikasjon på at det kan være hensiktsmessig å modellere volatiliteten eksplisitt.
+
+:::
+
+
+
+## Methodology
+
+- ARCH test
+
+- GARCH-modell
+
+- DCC-GARCH
+
+- DCC-GARCH T dist and norm
+
+::: {.notes}
+Arch test for the presence of ARCH effects, which would indicate time-varying volatility.
+
+Garch model estimates the conditional variance for each series, capturing both the effect of past shocks and the persistence of volatility.
+
+DCC-GARCH allows us to analyze the dynamic correlation between the oil price and stock returns, accounting for the time-varying nature of volatility.
+
+
+"fat tails"
+We see excess kurtosis in the returns, so the extreme values are more likely than under a normal distribution. Therefore, we also estimate the DCC-GARCH model using a multivariate t-distribution to better capture the tail behavior of the returns. 
+
+
+
+
+AI-KABEL:
+
+Vi følger en tre-stegs metodisk tilnærming.
+
+Først tester vi for ARCH-effekter ved hjelp av en ARCH LM-test.
+
+Dette lar oss undersøke om variansen er konstant, eller om den avhenger av tidligere sjokk.
+
+Når vi finner signifikante ARCH-effekter, indikerer dette at volatiliteten er tidsvarierende.
+
+I steg to modellerer vi derfor volatiliteten i hver enkelt tidsserie ved hjelp av en GARCH-modell.
+
+Dette lar oss fange både effekten av tidligere sjokk og persistens i volatiliteten.
+
+Til slutt bruker vi en DCC-GARCH-modell for å analysere den dynamiske korrelasjonen mellom oljepris og aksjeavkastning.
+
+Et viktig poeng er at vi først må modellere volatiliteten korrekt før vi kan analysere korrelasjonen.
+
+Denne tilnærmingen gir oss et helhetlig rammeverk for å analysere både volatilitet og samvariasjon over tid.
+:::
+
+
+
+
+
+## Arch test
+
+```{r}
+
+
+arch_test <- ArchTest(X, lags = 5); print(arch_test)
+arch_test <- ArchTest(Y, lags = 5); print(arch_test)
+arch_test <- ArchTest(Z, lags = 5); print(arch_test)
+
+```
+
+::: {.notes}
+
+The ARCH test evaluates the null hypothesis of no ARCH effects. The resulting p-values dictate the rejection of the null hypothesis for all three series. The variance is not constant over time. The presence of ARCH effects substantiates the application of GARCH models to measure the conditional variance.
+
+
+Vi forkaster nullhypotesen for alle serier” -> Variansen er ikke konstant over tid
+
+Lave p-verdier
+
+“Sterke tegn på volatility clustering”
+
+“Dette rettferdiggjør bruk av GARCH-modeller”
+:::
+
+## GARCH Aker BP
+
+:::: {.columns}
+
+::: {.column width="50%"}
+
+```{r}
+garch_spec <- ugarchspec(variance.model = list(model = "sGARCH", garchOrder = c(1, 1)), 
+                         mean.model = list(armaOrder = c(0, 0), include.mean = TRUE))
+     # sGARCH = standard GARCH
+
+garch_fit <- ugarchfit(spec = garch_spec, data = Y)
+print(garch_fit)
+cond_var <- sigma(garch_fit)^2
+```
+
+:::
+
+::: {.column width="50%"}
+
+```{r}
+plot( cond_var, type = "l", col = "blue",
+      main = "Conditional Variance (GARCH model) on Aker BP", xlab = "")
+
+
+```
+
+:::
+
+::::
+
+::: {.notes}
+
+AI-KABEL, må kortes ned:
+Vi estimerer en GARCH(1,1)-modell for å modellere volatiliteten i avkastningen.
+
+Resultatene viser at både alpha og beta er statistisk signifikante.
+
+Alpha fanger effekten av tidligere sjokk, mens beta måler persistens i volatiliteten.
+
+Når vi summerer alpha og beta, får vi en verdi svært nær 1, som indikerer høy persistens i volatiliteten.
+
+Dette betyr at perioder med høy volatilitet har en tendens til å vare over tid.
+
+Ser vi på figuren, bekrefter dette det vi forventer – vi ser tydelige perioder med høy og lav volatilitet som kommer i klynger.
+
+Diagnostiske tester viser også at det ikke er signifikant autokorrelasjon igjen i residualene, noe som tyder på at modellen fanger dynamikken godt.
+
+Det er kun svake rester av ARCH-effekter, men totalt sett gir modellen en god beskrivelse av volatiliteten.
+
+Dette gjør at vi nå kan gå videre til DCC-GARCH for å analysere korrelasjon.
+
+:::
+
+
+
+
+## GARCH Scatec
+
+:::: {.columns}
+
+::: {.column width="50%"}
+
+```{r}
+garch_spec <- ugarchspec(variance.model = list(model = "sGARCH", garchOrder = c(1, 1)), 
+                         mean.model = list(armaOrder = c(0, 0), include.mean = TRUE))
+     # sGARCH = standard GARCH
+
+garch_fit <- ugarchfit(spec = garch_spec, data = Z)
+print(garch_fit)
+cond_var <- sigma(garch_fit)^2
+```
+
+:::
+
+::: {.column width="50%"}
+
+```{r}
+plot( cond_var, type = "l", col = "blue",
+      main = "Conditional Variance (GARCH model) on Scatec", xlab = "")
+
+
+```
+
+:::
+
+::::
+
+::: {.notes}
+
+AI-KABEL, må kortes ned:
+Vi estimerer en GARCH(1,1)-modell for å modellere volatiliteten i avkastningen.
+
+Resultatene viser at både alpha og beta er statistisk signifikante.
+
+Alpha fanger effekten av tidligere sjokk, mens beta måler persistens i volatiliteten.
+
+Når vi summerer alpha og beta, får vi en verdi svært nær 1, som indikerer høy persistens i volatiliteten.
+
+Dette betyr at perioder med høy volatilitet har en tendens til å vare over tid.
+
+Ser vi på figuren, bekrefter dette det vi forventer – vi ser tydelige perioder med høy og lav volatilitet som kommer i klynger.
+
+Diagnostiske tester viser også at det ikke er signifikant autokorrelasjon igjen i residualene, noe som tyder på at modellen fanger dynamikken godt.
+
+Det er kun svake rester av ARCH-effekter, men totalt sett gir modellen en god beskrivelse av volatiliteten.
+
+Dette gjør at vi nå kan gå videre til DCC-GARCH for å analysere korrelasjon.
+
+:::
+
+
+
+
+
+## DCC-GARCH T dist
+
+
+
+:::: {.columns}
+
+::: {.column width="50%"}
+
+```{r}
+# DCC-GARCH Model
+###################
+
+# Define a univariate GARCH(1,1)
+uspec <- ugarchspec(
+  variance.model = list(model = "sGARCH", garchOrder = c(1, 1)),
+  mean.model = list(armaOrder = c(0, 0), include.mean = TRUE)
+)
+
+# Define the multivariate DCC-GARCH
+dccspec <- dccspec(
+  uspec = multispec(replicate(2, uspec)),  
+  dccOrder = c(1, 1),                      
+  distribution = "mvt"             
+)
+
+# Fit the DCC-GARCH model for X and Y
+dccfit <- dccfit(dccspec, data = data.frame(X,Y))
+print(dccfit)
+dcc_cor <- data.frame ( rcor(dccfit)[1,2,]); # head(dcc_cor)
+
+XY <- zoo(dcc_cor[,1], order.by = index(X))
+XY <- as.xts(XY)
+
+
+```
+
+:::
+
+::: {.column width="50%"}
+
+```{r}
+# Fig
+par(mar = c(5, 5, 4, 2)+ 0.1)
+plot( XY, type = "l", col = "blue",
+     main = "Dynamic Conditional Correlation", xlab = "Date", ylab = "Correlation")
+
+```
+
+:::
+
+::::
+
+::: {.notes}
+
+
+
+
+Comparisons between the Multivariate Student-t (mvt) and Normal (mvnorm) distributions indicate that the t-distribution provides a superior fit. The 
+
+The mshape of 9 gives us the fat tails we observed in the data, which is not captured by the normal distribution. The DCC-GARCH model with t-distribution captures the dynamic correlation more accurately, especially during periods of market stress when extreme values are more likely.
+
+
+AI-KABEL:
+
+Her ser vi resultatene fra DCC-GARCH-modellen, som viser den dynamiske korrelasjonen mellom oljepris og aksjeavkastningen til Aker BP.
+
+Fra grafen ser vi tydelig at korrelasjonen ikke er konstant, men varierer over tid.
+
+Korrelasjonen ligger stort sett mellom 0.2 og 0.5, noe som indikerer en moderat positiv sammenheng.
+
+Vi observerer også perioder med økt korrelasjon, spesielt i tider med høy markedsuro, noe som tyder på at sammenhengen blir sterkere i usikre perioder.
+
+Ser vi på parameterestimatene, finner vi at både dcca1 og dccb1 er statistisk signifikante.
+
+dcca1 representerer den kortsiktige effekten på korrelasjonen, mens dccb1 måler persistens.
+
+Den høye verdien av dccb1, rundt 0.91, indikerer at korrelasjonen er svært persistent over tid.
+
+Dette betyr at når korrelasjonen først øker eller faller, har den en tendens til å forbli på dette nivået en stund.
+
+Totalt sett finner vi støtte for hypotesen om at korrelasjonen er både tidsvarierende og persistent.
+
+:::
+
+
+
+
+
+
+
+## DCC-GARCH Norm dist
+
+
+
+:::: {.columns}
+
+::: {.column width="50%"}
+
+```{r}
+# DCC-GARCH Model
+###################
+
+# Define a univariate GARCH(1,1)
+uspec <- ugarchspec(
+  variance.model = list(model = "sGARCH", garchOrder = c(1, 1)),
+  mean.model = list(armaOrder = c(0, 0), include.mean = TRUE)
+)
+
+# Define the multivariate DCC-GARCH
+dccspec <- dccspec(
+  uspec = multispec(replicate(2, uspec)),  
+  dccOrder = c(1, 1),                      
+  distribution = "mvnorm"             
+)
+
+# Fit the DCC-GARCH model for X and Y
+dccfit <- dccfit(dccspec, data = data.frame(X,Y))
+print(dccfit)
+dcc_cor <- data.frame ( rcor(dccfit)[1,2,]); # head(dcc_cor)
+
+XY <- zoo(dcc_cor[,1], order.by = index(X))
+XY <- as.xts(XY)
+
+
+```
+
+:::
+
+::: {.column width="50%"}
+
+```{r}
+# Fig
+par(mar = c(5, 5, 4, 2)+ 0.1)
+plot( XY, type = "l", col = "blue",
+     main = "Dynamic Conditional Correlation", xlab = "Date", ylab = "Correlation")
+
+```
+
+:::
+:::
+
+

@@ -1,0 +1,264 @@
+---
+title: "SOK-3023 Prosjektskisse Presentasjon"
+subtitle: "Prediksjon av KPI med LSTM"
+date: last-modified
+date-format: "DD-MM-YYYY"
+echo: false
+warning: false
+format: 
+  revealjs:
+    auto-stretch: false
+    theme: moon
+    smaller: true
+---
+
+
+## Problemstilling
+
+**Kan prisendringer råvarepriser og endringer i valutakurser predikere fremtidig endring i KPI vekst?**
+
+Kan historiske data fra råvarepriser, valutakurser og det norske boligmarkedet predikere fremtidig endring i KPI vekst? 
+
+
+Tester for både KPI og KPI-JAE
+
+## Formueeffekt som moderator
+
+Dersom råvarepriser og KPI endrer seg avhengig av hvor sterkt boligmarkedet/gullprisen/wealth effekten er i en gitt periode, så kan dette være en moderator for effekten av råvarepriser og valutakurser på KPI-vekst. Siden den endrer styrken og retningen av denne effekten.
+
+
+## Formueeffekt som mediator
+
+
+2 måter det kan trekke opp eller ned. i transmisjon av prisendringer i råvarer og valuta til KPI-vekst, er gjennom formueeffekten.
+
+$$
+\begin{aligned}
+&\textbf{Effekt 1. Økt kpi} \\
+ &\text{Økt boligverdi} \rightarrow \text{Økt lånekapasitet/følelse av rikdom ("Wealth effect")} \\
+&\rightarrow  \text{Økt etterspørsel} \rightarrow  \text{Høyere KPI}
+\end{aligned}
+$$
+
+$$
+\begin{aligned}
+&\textbf{Effekt 2. Lavere kpi} \\
+&\text{Lavere boligverdi} \rightarrow \text{Lavere lånekapasitet/følelse av rikdom ("Negative wealth effect")} \\
+&\rightarrow  \text{Lavere etterspørsel} \rightarrow  \text{Lavere KPI}
+\end{aligned}
+$$
+
+
+
+
+
+
+## Alternativ ved bruk av hovedgrupper i KPI og dermed fange opp hvor modellen er god og dårlig på å predikere ulike deler av kpi
+
+Det er mulig vi prøver å bruke samme data på hovedgruppene til kpi, og derretter summerer de opp til total kpi. På denne måten kan vi se hvor modellen(ene) er god på å predikere de ulike delene av kpi, og hvor den er dårlig.
+
+
+
+## antakelser og hypoteser
+
+Tror innledningsvis at økt olje vil øke KPI-vekst, økt kobber økning i KPI, og økt sølv vil øke KPI gjennom industri. Denne effekten modereres ved å legge ved gull og boligpriser, som er mer alternative investeringer. Økt gull og boligpriser vil indikere at folk enten har overflod av kapital og flytter kapital til disse, og dermed mindre til produktive investeringer, og dermed lavere eller høyere KPI-vekst.
+
+
+```{mermaid}
+%%{init: {'themeVariables': { 'fontSize': '28px'}}}%%
+flowchart LR
+
+    VALUTA[Valuta] -->|Δ| GULL
+    BOLIG[Bolig] -->|Δ| GULL[Gull]
+    VALUTA -->|Δ| OLJE[Olje]
+    OLJE[Olje] --> VALUTA
+
+    GULL -->|Δ| SØLV[Sølv]
+    OLJE -->|Δ| KPI
+    SØLV -->|Δ| KPI[KPI]
+    KOBBER[Kobber] -->|Δ| KPI
+
+```
+
+
+
+## 
+
+```{mermaid}
+%%{init: {'themeVariables': { 'fontSize': '18px'}}}%%
+flowchart TD
+    subgraph INPUTS [Råvarer & Priser i USD]
+        OLJE[Olje]
+        KOBBER[Kobber]
+        SOLV[Sølv]
+        GULL[Gull]
+    end
+
+    subgraph MEKANISME [Transmisjon til NOK]
+        VALUTA{USD/NOK}
+        BOLIG[Boligpriser]
+    end
+
+    %% Samspill
+    OLJE <-->|Noe korrelasjon| VALUTA
+    GULL ---|Isolerer kapital-komponent| SOLV
+    KOBBER ---|Isolerer industri-komponent| SOLV
+
+
+    VALUTA -->|Importpris-filter| PRODUKSJON[Produksjonskostnader]
+    KOBBER --> PRODUKSJON
+    OLJE --> PRODUKSJON
+    SOLV --> PRODUKSJON
+
+
+    PRODUKSJON --> KPI[Total KPI Vekst]
+    BOLIG -->|Etterspørsel / Wealth| KPI
+    GULL -->|Likviditets-proxy| KPI
+
+
+```
+
+
+
+::: {.notes}
+
+Bolig og gull vil være etterspørselsdrevne inflasjon. 
+
+Produksjonskostnader vil gi tilbudsdreven inflasjon. 
+
+
+Valutakursen fungerer som en overføringsmekanisme som skalerer effekten av globale råvarepriser før de treffer norske produsenter.
+
+Valuta som "Multiplier": Valutakursen bestemmer hvor mye av den globale råvareprisøkningen (i USD) som faktisk treffer norske bedrifter. Hvis kobber og kronen styrker  seg, vil effektiv pris på kopper ikke øke like mye. Samme med importerte varer. LSTMen må fange opp dette samspillet.
+
+Vil Inkludere gull som en form for  "kontrollvariabel" for overskuddskapital. Håper det vil fungere i praksis som et filter som lar LSTMen skille mellom to forskjellige drivere av råvarepriser:
+
+Industriell etterspørsel: (Kobber og den industrielle delen av sølv). Dette er direkte inputfaktorer i produksjon som skaper kostnadsdrevet inflasjon.
+
+Monetær/Kapital-etterspørsel: (Gull og den finansielle delen av sølv). Dette representerer "safe haven"-flyt eller overskuddslikviditet, som heller peker mot etterspørselsdrevet inflasjon eller formueeffekter.
+
+
+
+::: 
+
+
+
+
+## gemini greie
+
+```{mermaid}
+%%{init: {
+  'theme': 'base',
+  'themeVariables': {
+    'fontSize': '22px',
+    'edgeLabelBackground': '#ffffff',
+    'tertiaryColor': '#ccbbbb'
+  }
+}}%%
+flowchart TD
+    subgraph USD_PRISER [Globale Priser i USD]
+        OLJE[Olje USD]
+        KOBBER[Kobber USD]
+        SOLV[Sølv USD]
+        GULL[Gull USD]
+    end
+
+    subgraph NORSK_KONTEKST [Transmisjon til Norge]
+        VALUTA{USD/NOK Kurs}
+        BOLIG[Boligpriser]
+    end
+
+    %% Her legges merkelappene på pilene med automatisk hvit bakgrunn
+    OLJE ==>|Valutakurs effekt| VALUTA
+    
+    VALUTA -.->|Pris-multiplier| KOBBER
+    VALUTA -.->|Pris-multiplier| SOLV
+    
+    KOBBER --> PRODUKSJON[Norske Produksjonskostnader]
+    OLJE --> PRODUKSJON
+    SOLV --> PRODUKSJON
+    
+    PRODUKSJON --> KPI[<b>Total KPI Vekst</b>]
+    
+    BOLIG -->|Wealth Effect| KPI
+    GULL -.->|Isolerer kapital-støy| SOLV
+    GULL -->|Likviditets-proxy| KPI
+
+    %% Styling for ren hvit bakgrunn og svart tekst
+    style USD_PRISER fill:#ffffff,stroke:#333,stroke-width:1px
+    style NORSK_KONTEKST fill:#ffffff,stroke:#333,stroke-width:1px
+    
+    style KPI fill:#ffffff,stroke:#2e7d32,stroke-width:3px,color:#000
+    style VALUTA fill:#ffffff,stroke:#ef6c00,stroke-width:2px,color:#000
+    style PRODUKSJON fill:#ffffff,stroke:#1565c0,color:#000
+    
+    style OLJE fill:#ffffff,stroke:#333,color:#000
+    style KOBBER fill:#ffffff,stroke:#333,color:#000
+    style SOLV fill:#ffffff,stroke:#333,color:#000
+    style GULL fill:#ffffff,stroke:#333,color:#000
+    style BOLIG fill:#ffffff,stroke:#333,color:#000
+```
+
+
+
+## antakelser og hypoteser
+
+Effekten av wealth effect vet vi ikke når kommer, samme med forsinkelse av effekter på for eksempel gull og bolig og dermed effekten de har på sølv. 
+
+Kompleksiteten i makroøkonomi gjør at det er vanskelig å forutsi nøyaktig hvordan disse variablene vil påvirke KPI, og LSTM tror vi kan fange opp disse ikke-lineære og komplekse sammenhengene bedre enn tradisjonelle modeller.
+
+
+
+## inputs
+
+
+
+
+Input-variabler (Features):
+
+Brent råolje (USD)
+
+Gull, Sølv, og Kobber (USD) og annet
+
+Valutakurs (USD/NOK) 
+
+Norske boligpriser (Månedlig)
+
+
+
+## problemer
+
+
+Stasjonaritet: Priser vokser over tid. Må trene modellen på prosentvis endring (avkastning/vekst) ikke absolutte priser.
+
+
+Multikollinearitet: Råvarepriser kan være korrelerte, og dette kan gjøre det vanskelig for modellen å skille ut individuelle effekter. 
+kan hende pca håper ikke
+
+Datafrekvens: Konvertere alt til samme tidsintervall (måneder) kvartal hvis boligpriser. 
+
+Vil helst velge data når euro og slikt er mer vanlig så helst ikke før 1990 uansett. Mer flytende valutaer. 
+
+Stor fare for problemer med overfitting ved at ved 1990-2025 månedtlige tall gir bare 420 datapunkter. så treningssett på 280, validering på 70, og test på 70 er lite. Kan måtte droppe bolig og heller ta 1980. Strukturelle brudd som globalisering og andre effekter vil spille hardere inn jo lengere bak i tid vi går.  
+
+
+
+## Sammenligningsmodeller
+
+
+Lineær Regresjon (for å etablere en enkel baseline)
+
+Enkel arima på total KPI. 
+
+
+## notes KI generert første 2 
+
+
+"Hvorfor kobber og sølv?" Svar: Kobber er ofte kalt "Dr. Copper" fordi prisen reflekterer tilstanden i verdensøkonomien og byggebransjen. Sølv brukes mye i industri. De er ledende indikatorer for global prisvekst.
+
+"Hva om modellen gjør det dårlig?" Svar: Du kan nevne at makroøkonomi er komplekst, og at i maskinlæring er et negativt funn (at råvarer ikke klarer å slå en naiv fremskrivning av KPI) også et fullgodt, vitenskapelig resultat for oppgaven, så lenge metoden er riktig utført.
+
+ikke ai
+
+Hvorfor gull og bolig?
+alternativ investeringer i forhold til produktive investeringer. Vekst i de ville indikere at folk flytter kapital til disse. 

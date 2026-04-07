@@ -1,0 +1,37 @@
+---
+title: "Datainnhenting quantmod"
+format: pdf
+---
+
+```{r}
+library(tidyverse)
+library(quantmod)
+
+
+#need monthly prices for copper, brent oil, gold, silver
+
+#brent monthly 1990-2026
+#getSymbols("DCOILBRENTEU", src = "FRED")
+# https://fred.stlouisfed.org/series/MCOILBRENTEU is the csv. dollars.
+
+
+# https://fred.stlouisfed.org/series/PCOPPUSDM copper per metric ton. 
+
+# https://datahub.io/core/gold-prices gold prices monthly per troy ounce
+
+
+
+#yahoo gold 1990-2026
+#getSymbols("GC=F", from = "1990-01-01", to = "2026-12-31")
+
+
+
+# https://data.norges-bank.no/api/data/EXR/M.USD.NOK.SP?format=csv&bom=include&apisrc=nbi&startPeriod=1990-01-01&endPeriod=2026-03-26&locale=no usd nok
+
+# https://www.macrotrends.net/datasets/1470/historical-silver-prices-100-year-chart silver? monthly
+
+
+```
+
+
+
