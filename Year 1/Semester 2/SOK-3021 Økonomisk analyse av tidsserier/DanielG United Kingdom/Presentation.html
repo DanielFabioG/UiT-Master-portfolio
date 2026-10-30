@@ -8,7 +8,7 @@
 <link href="Presentation_files/libs/quarto-html/light-border.css" rel="stylesheet">
 <link href="Presentation_files/libs/quarto-html/quarto-html.min.css" rel="stylesheet" data-mode="light">
 <link href="Presentation_files/libs/quarto-html/quarto-syntax-highlighting-dark.css" rel="stylesheet" id="quarto-text-highlighting-styles"><meta charset="utf-8">
-  <meta name="generator" content="quarto-1.4.551">
+  <meta name="generator" content="quarto-1.4.550">
 
   <meta name="author" content="Daniel G">
   <title>Unemployment rate and economic growth</title>
@@ -342,18 +342,21 @@ Daniel G
 <ul>
 <li><p>United Kingdom</p></li>
 <li><p>Unemployment rate and economic growth</p></li>
-<li><p>ARIMA</p></li>
-<li><p>Cointegration</p></li>
-<li><p>VAR</p></li>
-<li><p>Conclusion</p></li>
+<li><p>Time Series Analysis</p>
+<ul>
+<li>ARIMA / ARMIAX</li>
+<li>Cointegration</li>
+<li>VAR</li>
+</ul></li>
 </ul>
 <aside class="notes">
 <ul>
-<li>The United Kingdom has experienced significant economic changes over the past few decades, including periods of recession and recovery.</li>
-<li>The unemployment rate and economic growth are closely linked, with changes in one often leading to changes in the other.</li>
-<li>In this presentation, we will analyze the relationship between the unemployment rate and economic growth in the United Kingdom using various time series analysis techniques, including ARIMA, cointegration, and VECM.</li>
-<li>We will also discuss the implications of our findings for policymakers and economists.</li>
+<li>We study how unemployment and economic growth move together</li>
+<li>Focus: short-run vs long-run relationship</li>
+<li>Use time series models to analyze and forecast</li>
 </ul>
+<p>VAR = Vector Autoregression (captures short-run dynamics)</p>
+<p>VECM = Vector Error Correction Model (captures long-run relationship)</p>
 <style type="text/css">
         span.MJX_Assistive_MathML {
           position:absolute!important;
@@ -467,9 +470,11 @@ Daniel G
 </div>
 <aside class="notes">
 <ul>
-<li>The unemployment data is sourced from the OECD and covers the period from 1985 to 2025, with quarterly observations.</li>
-<li>The GDP growth rate data is also sourced from the OECD and covers the same period.</li>
-<li>Both datasets have been cleaned and transformed to facilitate analysis, including the creation of time series objects and the combination of the two datasets for comparative analysis.</li>
+<li><p>Quarterly data from OECD (1985–2025)</p></li>
+<li><p>Variables:</p></li>
+<li><p>Unemployment rate (%)</p></li>
+<li><p>GDP growth (%)</p></li>
+<li><p>Data is already cleaned and structured for analysis and converted into a time series.</p></li>
 </ul>
 <style type="text/css">
         span.MJX_Assistive_MathML {
@@ -552,7 +557,22 @@ alternative hypothesis: stationary</code></pre>
 </div>
 </div>
 <aside class="notes">
-<p>The ADF test results indicate that the unemployment rate is non-stationary, as the p-value is greater than 0.05. However, the GDP growth rate is stationary, with a p-value less than 0.05. After taking the first difference of the unemployment rate, it becomes stationary, as indicated by the significant p-value. Therefore, we conclude that the unemployment rate is integrated of order one I(1), while GDP growth is integrated of order zero I(0). We can now continue with the ARIMA modeling for the unemployment rate and cointegration analysis between the two variables.</p>
+<p>Test for stationarity</p>
+<p>Results:</p>
+<ul>
+<li>Unemployment: non-stationary</li>
+<li>GDP growth: stationary</li>
+</ul>
+<p>A stationary series has stable mean and variance over time.</p>
+<ul>
+<li>I difference unemployment once → becomes stationary</li>
+</ul>
+<p>So:</p>
+<ul>
+<li>Unemployment is I(1)</li>
+<li>GDP growth is I(0)</li>
+</ul>
+<p>Integrated means the number of differences needed to achieve stationarity. Unemployment is integrated of order 1 (I(1)) because it becomes stationary after differencing once, while GDP growth is already stationary and thus is integrated of order 0 (I(0)). This has implications for the choice of models and the interpretation of relationships between the two series, particularly in terms of cointegration and forecasting.</p>
 <style type="text/css">
         span.MJX_Assistive_MathML {
           position:absolute!important;
@@ -569,7 +589,13 @@ alternative hypothesis: stationary</code></pre>
 <h2>ARIMA</h2>
 
 <img data-src="Presentation_files/figure-revealjs/unnamed-chunk-7-1.png" width="960" class="r-stretch"><aside class="notes">
-<p>The ARIMA model selected for the unemployment rate is ARIMA(1,1,1), which indicates that the series is differenced once to achieve stationarity, and includes one autoregressive term and one moving average term. The forecast for the next 8 quarters (2 years) shows a continuation of the small upward trend in unemployment, with the forecasted values gradually tapering off. The confidence intervals widen over time, reflecting increasing uncertainty in the forecasts. To evaluate whether including lagged values of economic growth improves forecast accuracy, we can fit a regression model with lagged GDP growth as an additional predictor and compare the forecast performance using metrics such as Mean Absolute Error (MAE) or Root Mean Squared Error (RMSE).</p>
+<ul>
+<li><p>ARIMA = model using past values</p></li>
+<li><p>Used for forecasting unemployment</p></li>
+</ul>
+<p>ARIMA predicts future values using past patterns and trends.</p>
+<p>The ARIMA model selected for the unemployment rate is ARIMA(1,1,1), which indicates that the series is differenced once to achieve stationarity, and includes one autoregressive term and one moving average term.</p>
+<p>Forecast shows mild increase with uncertainty.</p>
 <style type="text/css">
         span.MJX_Assistive_MathML {
           position:absolute!important;
@@ -586,7 +612,15 @@ alternative hypothesis: stationary</code></pre>
 <h2>ARIMA with lagged GDP growth</h2>
 
 <img data-src="Presentation_files/figure-revealjs/unnamed-chunk-8-1.png" width="960" class="r-stretch"><aside class="notes">
-<p>The ARIMAX model, which includes the lagged GDP growth as an exogenous variable, may provide improved forecasts if there is a significant relationship between economic growth and unemployment. By comparing the forecast accuracy of the ARIMA and ARIMAX models using MAE or RMSE, we can determine whether the inclusion of lagged GDP growth enhances the predictive performance for the unemployment rate. If the ARIMAX model shows a lower error metric compared to the ARIMA model, it would suggest that economic growth has a meaningful impact on forecasting unemployment. We include GDP growth lagged by one quarter because economic growth typically affects labor markets with a short delay, consistent with Okun’s law.</p>
+<p>ARIMAX = ARIMA + external variable (GDP growth)</p>
+<p>The ARIMAX model incorporates lagged GDP growth as an external regressor, allowing us to capture the influence of economic growth on unemployment forecasts.</p>
+<ul>
+<li>ARIMAX adds economic growth to improve predictions of unemployment.</li>
+</ul>
+<p>GDP growth affects unemployment with a lag</p>
+<ul>
+<li>Forecast improves slighlty.</li>
+</ul>
 <style type="text/css">
         span.MJX_Assistive_MathML {
           position:absolute!important;
@@ -616,24 +650,10 @@ Training set -0.01483334</code></pre>
 </div>
 </div>
 <aside class="notes">
-<p>The ARIMAX model, which incorporates lagged GDP growth, shows a lower RMSE and MAE compared to the ARIMA model, indicating improved forecast accuracy. The Mean Absolute Error (MAE) decreased from 0.158 to 0.152, and the Root Mean Squared Error (RMSE) decreased from 0.203 to 0.190. This suggests that including lagged values of economic growth enhances the predictive performance for forecasting the unemployment rate in the UK. Therefore, we can conclude that economic growth has a significant impact on unemployment forecasts, and policymakers should consider this relationship when designing economic policies aimed at reducing unemployment.</p>
-<style type="text/css">
-        span.MJX_Assistive_MathML {
-          position:absolute!important;
-          clip: rect(1px, 1px, 1px, 1px);
-          padding: 1px 0 0 0!important;
-          border: 0!important;
-          height: 1px!important;
-          width: 1px!important;
-          overflow: hidden!important;
-          display:block!important;
-      }</style></aside>
-</section>
-<section id="accuracy-comparison-1" class="slide level2">
-<h2>Accuracy Comparison</h2>
-
-<img data-src="Presentation_files/figure-revealjs/unnamed-chunk-10-1.png" width="960" class="r-stretch"><aside class="notes">
-<p>The ARIMAX model, which incorporates lagged GDP growth, shows a lower RMSE and MAE compared to the ARIMA model, indicating improved forecast accuracy. The Mean Absolute Error (MAE) decreased from 0.158 to 0.152, and the Root Mean Squared Error (RMSE) decreased from 0.203 to 0.190. This suggests that including lagged values of economic growth enhances the predictive performance for forecasting the unemployment rate in the UK. Therefore, we can conclude that economic growth has a significant impact on unemployment forecasts, and policymakers should consider this relationship when designing economic policies aimed at reducing unemployment.</p>
+<p>ARIMAX performs better:</p>
+<p>Lower RMSE Lower MAE</p>
+<p>RMSE = Root Mean Squared Error (measures average magnitude of errors) MAE = Mean Absolute Error (measures average absolute errors)</p>
+<p>Including GDP growth improves forecasting accuracy.</p>
 <style type="text/css">
         span.MJX_Assistive_MathML {
           position:absolute!important;
@@ -675,9 +695,12 @@ F-statistic: 8.134 on 3 and 158 DF,  p-value: 4.526e-05</code></pre>
 </div>
 </div>
 <aside class="notes">
-<p>Cointegration analysis is essential to understand whether there is a long-run equilibrium relationship between unemployment and economic growth. Since we have established that the unemployment rate is I(1) and GDP growth is I(0), we can proceed with the Engle-Granger two-step method to test for cointegration.</p>
-<p>than the 5% critical value of -3.37. Therefore, we fail to reject the null hypothesis of no cointegration. This indicates that a long-run equilibrium relationship between unemployment and GDP growth is absent, which is consistent with the different orders of integration for the two series (unemployment I(1), GDP I(0)).</p>
-<p>As a result, short-term forecasting using ARIMAX models is appropriate for policy analysis.</p>
+<p>Tests long-run relationship - Result: No cointegration</p>
+<p>Cointegration means two variables move together in the long run.</p>
+<p>We find no such relationship.</p>
+<p>If cointegration existed, we would use a VECM (Vector Error Correction Model), which combines short-run dynamics with long-run equilibrium.</p>
+<p>Since variables are different orders (I(1) vs I(0)), cointegration unlikely</p>
+<p>So we move to short-run analysis</p>
 <style type="text/css">
         span.MJX_Assistive_MathML {
           position:absolute!important;
@@ -762,10 +785,16 @@ gdp_ts                 -0.06725  1.00000</code></pre>
 </div>
 </div>
 <aside class="notes">
-<p>Given that we found no evidence of cointegration between unemployment and GDP growth, we will estimate a Vector Autoregression (VAR) model to explore the short-run dynamics between these two variables. The VAR model allows us to capture the interdependencies and feedback effects without imposing a long-run equilibrium relationship.</p>
-<p>The VAR model estimation results indicate that the lagged values of both unemployment and GDP growth have significant effects on the current unemployment rate. Specifically, the first lag of unemployment has a positive and significant coefficient (1.3185), suggesting that higher unemployment in the previous quarter is associated with higher unemployment in the current quarter.</p>
-<p>The first lag of GDP growth has a negative and significant coefficient (-0.0429), indicating that higher economic growth in the previous quarter is associated with lower unemployment in the current quarter, consistent with Okun’s Law.</p>
-<p>Later lags of GDP or unemployment sometimes are not statistically significant, meaning their effect is weaker or negligible in the short run. The model explains a large portion of the variance in unemployment (R-squared = 0.9925), suggesting that past values of unemployment and GDP growth are strong predictors of current unemployment.</p>
+<p>VAR = Vector Autoregression (captures short-run dynamics)</p>
+<p>VAR = system of equations where each variable is a function of its own lags and the lags of the other variable.</p>
+<p>Each variable depends on its own past values and the past values of the other variable.</p>
+<p>Unemployment depends on:</p>
+<ul>
+<li>Past unemployment</li>
+<li>Past GDP growth</li>
+</ul>
+<p>GDP growth → negative effect on unemployment</p>
+<p>Matches Okun’s Law: higher growth → lower unemployment</p>
 <style type="text/css">
         span.MJX_Assistive_MathML {
           position:absolute!important;
@@ -781,19 +810,14 @@ gdp_ts                 -0.06725  1.00000</code></pre>
 <section id="conclusion" class="slide level2">
 <h2>Conclusion</h2>
 <ul>
-<li><p>Unemployment rate in UK is non-stationary, while GDP growth rate is stationary.</p></li>
-<li><p>Cointegration analysis indicates no long-run equilibrium relationship between unemployment and GDP growth.</p></li>
-<li><p>The ARIMAX model with lagged GDP growth provides improved forecast accuracy compared to the ARIMA model alone.</p></li>
-<li><p>The VAR model reveals significant short-run dynamics</p></li>
-<li><p>Policymakers should consider the short-run interactions between unemployment and economic growth when designing economic policies aimed at reducing unemployment.</p></li>
+<li><p>Unemployment = non-stationary, GDP = stationary</p></li>
+<li><p>No long-run relationship (no cointegration)</p></li>
+<li><p>Short-run relationship exists</p></li>
+<li><p>GDP growth improves unemployment forecasts</p></li>
+<li><p>Policy should focus on short-run dynamics</p></li>
 </ul>
 <aside class="notes">
-<ul>
-<li><p>The ARIMA model for the unemployment rate indicates that it is non-stationary, while the GDP growth rate is stationary. The ARIMAX model, which includes lagged GDP growth, provides improved forecast accuracy compared to the ARIMA model alone, suggesting that economic growth has a significant impact on unemployment forecasts.</p></li>
-<li><p>Cointegration analysis using the Engle-Granger method indicates that there is no long-run equilibrium relationship between unemployment and GDP growth, which is consistent with their different orders of integration.</p></li>
-<li><p>The VAR model estimation reveals significant short-run dynamics between the two variables, with lagged unemployment positively affecting current unemployment and lagged GDP growth negatively affecting current unemployment, consistent with Okun’s Law.</p></li>
-<li><p>Overall, the findings suggest that while there is no long-run relationship between unemployment and economic growth, there are significant short-run interactions that policymakers should consider when designing economic policies aimed at reducing unemployment.</p></li>
-</ul>
+
 <style type="text/css">
         span.MJX_Assistive_MathML {
           position:absolute!important;
@@ -1022,80 +1046,42 @@ gdp_ts                 -0.06725  1.00000</code></pre>
       });
     </script>
     
-
     <script>
-
       // htmlwidgets need to know to resize themselves when slides are shown/hidden.
-
       // Fire the "slideenter" event (handled by htmlwidgets.js) when the current
-
       // slide changes (different for each slide format).
-
       (function () {
-
         // dispatch for htmlwidgets
-
         function fireSlideEnter() {
-
           const event = window.document.createEvent("Event");
-
           event.initEvent("slideenter", true, true);
-
           window.document.dispatchEvent(event);
-
         }
-
-    
 
         function fireSlideChanged(previousSlide, currentSlide) {
-
           fireSlideEnter();
 
-    
-
           // dispatch for shiny
-
           if (window.jQuery) {
-
             if (previousSlide) {
-
               window.jQuery(previousSlide).trigger("hidden");
-
             }
-
             if (currentSlide) {
-
               window.jQuery(currentSlide).trigger("shown");
-
             }
-
           }
-
         }
-
-    
 
         // hookup for slidy
-
         if (window.w3c_slidy) {
-
           window.w3c_slidy.add_observer(function (slide_num) {
-
             // slide_num starts at position 1
-
             fireSlideChanged(null, w3c_slidy.slides[slide_num - 1]);
-
           });
-
         }
 
-    
-
       })();
-
     </script>
-
-    
 
     <script id="quarto-html-after-body" type="application/javascript">
     window.document.addEventListener("DOMContentLoaded", function (event) {
@@ -1173,24 +1159,6 @@ gdp_ts                 -0.06725  1.00000</code></pre>
         // clear code selection
         e.clearSelection();
       });
-        var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
-        var mailtoRegex = new RegExp(/^mailto:/);
-          var filterRegex = new RegExp('/' + window.location.host + '/');
-        var isInternal = (href) => {
-            return filterRegex.test(href) || localhostRegex.test(href) || mailtoRegex.test(href);
-        }
-        // Inspect non-navigation links and adorn them if external
-     	var links = window.document.querySelectorAll('a[href]:not(.nav-link):not(.navbar-brand):not(.toc-action):not(.sidebar-link):not(.sidebar-item-toggle):not(.pagination-link):not(.no-external):not([aria-hidden]):not(.dropdown-item):not(.quarto-navigation-tool)');
-        for (var i=0; i<links.length; i++) {
-          const link = links[i];
-          if (!isInternal(link.href)) {
-            // undo the damage that might have been done by quarto-nav.js in the case of
-            // links that we want to consider external
-            if (link.dataset.originalHref !== undefined) {
-              link.href = link.dataset.originalHref;
-            }
-          }
-        }
       function tippyHover(el, contentFn, onTriggerFn, onUntriggerFn) {
         const config = {
           allowHTML: true,
@@ -1227,11 +1195,7 @@ gdp_ts                 -0.06725  1.00000</code></pre>
           try { href = new URL(href).hash; } catch {}
           const id = href.replace(/^#\/?/, "");
           const note = window.document.getElementById(id);
-          if (note) {
-            return note.innerHTML;
-          } else {
-            return "";
-          }
+          return note.innerHTML;
         });
       }
       const findCites = (el) => {

@@ -84,21 +84,20 @@ df$date <- as.Date(as.yearqtr(paste(df$year, df$quarter), "%Y %q"))
 
 - Unemployment rate and economic growth
 
-- ARIMA
-
-- Cointegration
-
-- VAR
-
-- Conclusion
+- Time Series Analysis
+  - ARIMA / ARMIAX
+  - Cointegration
+  - VAR
 
 :::{.notes}
 
-- The United Kingdom has experienced significant economic changes over the past few decades, including periods of recession and recovery.
-- The unemployment rate and economic growth are closely linked, with changes in one often leading to changes in the other.
-- In this presentation, we will analyze the relationship between the unemployment rate and economic growth in the United Kingdom using various time series analysis techniques, including ARIMA, cointegration, and VECM.
-- We will also discuss the implications of our findings for policymakers and economists.
+- We study how unemployment and economic growth move together
+- Focus: short-run vs long-run relationship
+- Use time series models to analyze and forecast
 
+VAR = Vector Autoregression (captures short-run dynamics)
+
+VECM = Vector Error Correction Model (captures long-run relationship)
 :::
 
 
@@ -130,9 +129,12 @@ kableExtra::kable(head(gdp_data), caption = "GDP Growth Rate in the UK")
 :::
 
 :::{.notes}
-- The unemployment data is sourced from the OECD and covers the period from 1985 to 2025, with quarterly observations.
-- The GDP growth rate data is also sourced from the OECD and covers the same period.
-- Both datasets have been cleaned and transformed to facilitate analysis, including the creation of time series objects and the combination of the two datasets for comparative analysis.
+- Quarterly data from OECD (1985–2025)
+- Variables:
+- Unemployment rate (%)
+- GDP growth (%)
+
+- Data is already cleaned and structured for analysis and converted into a time series.
 :::
 
 ## Data
@@ -204,7 +206,23 @@ adf_unemployment_diff
 ```
 
 :::{.notes}
-The ADF test results indicate that the unemployment rate is non-stationary, as the p-value is greater than 0.05. However, the GDP growth rate is stationary, with a p-value less than 0.05. After taking the first difference of the unemployment rate, it becomes stationary, as indicated by the significant p-value. Therefore, we conclude that the unemployment rate is integrated of order one I(1), while GDP growth is integrated of order zero I(0). We can now continue with the ARIMA modeling for the unemployment rate and cointegration analysis between the two variables.
+Test for stationarity
+
+Results:
+
+- Unemployment: non-stationary
+- GDP growth: stationary
+
+A stationary series has stable mean and variance over time.
+
+- I difference unemployment once → becomes stationary
+
+So:
+
+- Unemployment is I(1)
+- GDP growth is I(0)
+
+Integrated means the number of differences needed to achieve stationarity. Unemployment is integrated of order 1 (I(1)) because it becomes stationary after differencing once, while GDP growth is already stationary and thus is integrated of order 0 (I(0)). This has implications for the choice of models and the interpretation of relationships between the two series, particularly in terms of cointegration and forecasting.
 :::
 
 
@@ -217,7 +235,16 @@ plot(forecast_arima, main = "", xlab = "", ylab = "Unemployment Rate (%)")
 ```
 
 :::{.notes}
-The ARIMA model selected for the unemployment rate is ARIMA(1,1,1), which indicates that the series is differenced once to achieve stationarity, and includes one autoregressive term and one moving average term. The forecast for the next 8 quarters (2 years) shows a continuation of the small upward trend in unemployment, with the forecasted values gradually tapering off. The confidence intervals widen over time, reflecting increasing uncertainty in the forecasts. To evaluate whether including lagged values of economic growth improves forecast accuracy, we can fit a regression model with lagged GDP growth as an additional predictor and compare the forecast performance using metrics such as Mean Absolute Error (MAE) or Root Mean Squared Error (RMSE).
+- ARIMA = model using past values
+
+- Used for forecasting unemployment
+
+ARIMA predicts future values using past patterns and trends.
+
+The ARIMA model selected for the unemployment rate is ARIMA(1,1,1), which indicates that the series is differenced once to achieve stationarity, and includes one autoregressive term and one moving average term.
+
+Forecast shows mild increase with uncertainty.
+
 :::
 
 ## ARIMA with lagged GDP growth
@@ -232,8 +259,16 @@ plot(forecast_arimax, main = "", xlab = "", ylab = "Unemployment Rate (%)")
 ```
 
 :::{.notes}
-The ARIMAX model, which includes the lagged GDP growth as an exogenous variable, may provide improved forecasts if there is a significant relationship between economic growth and unemployment. By comparing the forecast accuracy of the ARIMA and ARIMAX models using MAE or RMSE, we can determine whether the inclusion of lagged GDP growth enhances the predictive performance for the unemployment rate. If the ARIMAX model shows a lower error metric compared to the ARIMA model, it would suggest that economic growth has a meaningful impact on forecasting unemployment. We include GDP growth lagged by one quarter because economic growth typically affects labor markets with a short delay, consistent with Okun’s law.
-::: 
+ARIMAX = ARIMA + external variable (GDP growth)
+
+The ARIMAX model incorporates lagged GDP growth as an external regressor, allowing us to capture the influence of economic growth on unemployment forecasts. 
+
+- ARIMAX adds economic growth to improve predictions of unemployment.
+
+GDP growth affects unemployment with a lag
+
+- Forecast improves slighlty.
+:::
 
 ## Accuracy Comparison
 
@@ -245,28 +280,15 @@ accuracy(arimax_model)
 ```
 
 :::{.notes}
-The ARIMAX model, which incorporates lagged GDP growth, shows a lower RMSE and MAE compared to the ARIMA model, indicating improved forecast accuracy. The Mean Absolute Error (MAE) decreased from 0.158 to 0.152, and the Root Mean Squared Error (RMSE) decreased from 0.203 to 0.190. This suggests that including lagged values of economic growth enhances the predictive performance for forecasting the unemployment rate in the UK. Therefore, we can conclude that economic growth has a significant impact on unemployment forecasts, and policymakers should consider this relationship when designing economic policies aimed at reducing unemployment.
-:::
+ARIMAX performs better:
 
-## Accuracy Comparison
+Lower RMSE
+Lower MAE
 
-```{r}
-autoplot(forecast_arima) +
-  autolayer(forecast_arimax$mean, series="ARIMAX Forecast") +
-  labs(x = "",
-       y = "Unemployment Rate (%)",
-       title = "") +
-  theme_bw()+
-  theme(legend.position = "bottom")+
-  scale_color_manual(values = c("ARIMA Forecast" = "steelblue", "ARIMAX Forecast" = "darkorange"))+
-  theme(plot.title = element_text(hjust = 0.5, size = 14, face = "bold"),
-        legend.position = "none",
-        axis.text = element_text(size = 10),
-        axis.title = element_text(size = 16))
-```
+RMSE = Root Mean Squared Error (measures average magnitude of errors)
+MAE = Mean Absolute Error (measures average absolute errors)
 
-:::{.notes}
-The ARIMAX model, which incorporates lagged GDP growth, shows a lower RMSE and MAE compared to the ARIMA model, indicating improved forecast accuracy. The Mean Absolute Error (MAE) decreased from 0.158 to 0.152, and the Root Mean Squared Error (RMSE) decreased from 0.203 to 0.190. This suggests that including lagged values of economic growth enhances the predictive performance for forecasting the unemployment rate in the UK. Therefore, we can conclude that economic growth has a significant impact on unemployment forecasts, and policymakers should consider this relationship when designing economic policies aimed at reducing unemployment.
+Including GDP growth improves forecasting accuracy.
 :::
 
 ## Cointegration
@@ -281,11 +303,19 @@ summary(dynlm(d(e) ~ 0 + L(e,1) + L(d(e),1:2)))
 ```
 
 :::{.notes}
-Cointegration analysis is essential to understand whether there is a long-run equilibrium relationship between unemployment and economic growth. Since we have established that the unemployment rate is I(1) and GDP growth is I(0), we can proceed with the Engle-Granger two-step method to test for cointegration.
+Tests long-run relationship
+- Result: No cointegration
 
-than the 5% critical value of -3.37. Therefore, we fail to reject the null hypothesis of no cointegration. This indicates that a long-run equilibrium relationship between unemployment and GDP growth is absent, which is consistent with the different orders of integration for the two series (unemployment I(1), GDP I(0)).
+Cointegration means two variables move together in the long run.
 
-As a result, short-term forecasting using ARIMAX models is appropriate for policy analysis.
+We find no such relationship.
+
+If cointegration existed, we would use a VECM (Vector Error Correction Model), which combines short-run dynamics with long-run equilibrium.
+
+Since variables are different orders (I(1) vs I(0)), cointegration unlikely
+
+So we move to short-run analysis
+
 :::
 
 ## VAR (short run)
@@ -302,38 +332,37 @@ summary(var_model)
 ```
 
 :::{.notes}
-Given that we found no evidence of cointegration between unemployment and GDP growth, we will estimate a Vector Autoregression (VAR) model to explore the short-run dynamics between these two variables. The VAR model allows us to capture the interdependencies and feedback effects without imposing a long-run equilibrium relationship.
+VAR = Vector Autoregression (captures short-run dynamics)
 
-The VAR model estimation results indicate that the lagged values of both unemployment and GDP growth have significant effects on the current unemployment rate. Specifically, the first lag of unemployment has a positive and significant coefficient (1.3185), suggesting that higher unemployment in the previous quarter is associated with higher unemployment in the current quarter.
+VAR = system of equations where each variable is a function of its own lags and the lags of the other variable.
 
-The first lag of GDP growth has a negative and significant coefficient (-0.0429), indicating that higher economic growth in the previous quarter is associated with lower unemployment in the current quarter, consistent with Okun’s Law.
+Each variable depends on its own past values and the past values of the other variable.
 
-Later lags of GDP or unemployment sometimes are not statistically significant, meaning their effect is weaker or negligible in the short run. The model explains a large portion of the variance in unemployment (R-squared = 0.9925), suggesting that past values of unemployment and GDP growth are strong predictors of current unemployment.
+Unemployment depends on:
 
+- Past unemployment
+- Past GDP growth
+
+GDP growth → negative effect on unemployment
+
+Matches Okun’s Law: higher growth → lower unemployment
 
 :::
 
 
 ## Conclusion
 
-- Unemployment rate in UK is non-stationary, while GDP growth rate is stationary.
+- Unemployment = non-stationary, GDP = stationary
 
-- Cointegration analysis indicates no long-run equilibrium relationship between unemployment and GDP growth.
+- No long-run relationship (no cointegration)
 
-- The ARIMAX model with lagged GDP growth provides improved forecast accuracy compared to the ARIMA model alone.
+- Short-run relationship exists
 
-- The VAR model reveals significant short-run dynamics
+- GDP growth improves unemployment forecasts
 
-- Policymakers should consider the short-run interactions between unemployment and economic growth when designing economic policies aimed at reducing unemployment.
+- Policy should focus on short-run dynamics
 
 :::{.notes}
 
-- The ARIMA model for the unemployment rate indicates that it is non-stationary, while the GDP growth rate is stationary. The ARIMAX model, which includes lagged GDP growth, provides improved forecast accuracy compared to the ARIMA model alone, suggesting that economic growth has a significant impact on unemployment forecasts.
-
-- Cointegration analysis using the Engle-Granger method indicates that there is no long-run equilibrium relationship between unemployment and GDP growth, which is consistent with their different orders of integration.
-
-- The VAR model estimation reveals significant short-run dynamics between the two variables, with lagged unemployment positively affecting current unemployment and lagged GDP growth negatively affecting current unemployment, consistent with Okun’s Law.
-
-- Overall, the findings suggest that while there is no long-run relationship between unemployment and economic growth, there are significant short-run interactions that policymakers should consider when designing economic policies aimed at reducing unemployment.
 
 :::
