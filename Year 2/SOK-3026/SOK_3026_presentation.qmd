@@ -1,0 +1,208 @@
+---
+title: "Beer Demand in Chicago"
+subtitle: "SOK-3026"
+lang: en
+date: "2026-10-22"
+date-format: "DD.MM.YYYY"
+echo: false
+warning: false
+format:
+  revealjs:
+    theme: dark
+    html-math-method: mathml
+    title-slide: true
+    slide-level: 2
+    width: 1280
+    height: 720
+    margin: 0.07
+    center: false
+    auto-stretch: false
+    slide-number: c/t
+    transition: fade
+    navigation-mode: linear
+    controls: true
+    progress: true
+    history: true
+    hash: true
+    embed-resources: true
+    preview-links: false
+    include-in-header:
+      text: |
+        <style>
+        .reveal { font-family: Arial, Helvetica, sans-serif; font-size: 30px; color: #f2f4f7; }
+        .reveal h1, .reveal h2, .reveal h3 { font-family: Arial, Helvetica, sans-serif; text-transform: none; font-weight: 600; color: #f2f4f7; }
+        .reveal h2 { font-size: 1.55em; margin-bottom: 0.65em; }
+        .reveal h3 { font-size: 1.05em; color: #8ad6d0; margin-bottom: 0.4em; }
+        .reveal p, .reveal li { line-height: 1.35; }
+        .reveal li { margin-bottom: 0.5em; }
+        .reveal strong { color: #8ad6d0; }
+        .reveal .columns { display: flex; gap: 2em; }
+        .reveal .column { min-width: 0; }
+        .reveal table { font-size: 0.8em; width: 100%; margin: 0.65em 0; }
+        .reveal table th { color: #8ad6d0; border-bottom: 2px solid #8ad6d0; }
+        .reveal table td, .reveal table th { padding: 0.55em 0.5em; vertical-align: top; }
+        .reveal .source { font-size: 0.52em; color: #bbc4d0; margin-top: 1.1em; }
+        .reveal .lead { font-size: 1.32em; line-height: 1.35; margin: 1em 0; }
+        .reveal .equation { font-family: Georgia, serif; font-size: 1.22em; padding: 0.55em 0; }
+        .reveal .small { font-size: 0.77em; }
+        .reveal .math.display { font-size: 0.9em; }
+        .reveal .compact { font-size: 0.78em; }
+        .reveal a { color: #8ad6d0; }
+        .reveal .evidence { width: 100%; background: white; margin: 0; }
+        </style>
+---
+
+## 1. Our topic: beer demand in Chicago
+
+- Study **substitution between beer groups** using Dominick’s retail data
+
+- Estimate **Rotterdam and AIDS** and compare the results
+
+- Considering alcoholic and non-alcoholic beer, **what to do with the non-alcoholic beer?**
+
+- Use the assigned demand-system papers as methodological guides
+
+::: notes
+We want to study how purchases shift between beer groups when prices change, and whether Rotterdam and AIDS lead to similar conclusions. Dominick’s is our current starting point because it was suggested as a possible data source. Non-alcoholic beer interests us, but we have not established whether its coverage is sufficient.
+
+We are still learning the theory and have not estimated the models. We would like to use this presentation to check whether our plan is sensible before going further.
+
+Ask: Would you recommend comparing broad beer segments, individual brands, or a simpler product category?
+
+Timing: approximately one minute of explanation, then allow discussion. The seven slides together contain about 7–10 minutes of prepared remarks, plus the professor’s feedback. Sources: group draft, pp. 6–8; the assignment requirement to estimate both models.
+:::
+
+## 2. How we plan to use the literature
+
+| Paper | What we want to learn |
+|:--|:--|
+| Bronnmann (2016) | Using retail scanner data with LA/AIDS |
+| Fousekis & Revell (2000) | Applying and comparing demand systems |
+| Alston & Chalfant (1993) | Comparing Rotterdam and Almost Ideal models |
+| Heng et al. (2018) | Deciding which products can be grouped |
+
+We also have used more references than this, however might be a bit too much for a shorter paper.
+
+::: notes
+We have selected these papers because they address different parts of our project. We are beginning to work through them rather than claiming that we have mastered their methods.
+
+Bronnmann is useful for the scanner-data setup. Fousekis and Revell give an applied comparison, although they include additional models and use differential AIDS. Alston and Chalfant focus directly on model comparison. Heng and colleagues discuss aggregation, which matters when deciding how to turn many beer products into a few groups.
+
+The original Deaton and Muellbauer paper is our foundation for AIDS. The wine-review paper initially helped us think about a possible topic, but expert reviews are not part of our current core plan.
+
+Ask: Would you recommend one applied paper to follow closely, supported by the original theory papers? How much literature discussion is useful for this assignment?
+
+Sources: Bronnmann (2016), pp. 334–337; Fousekis and Revell (2000), pp. 12–14; Alston and Chalfant (1993), pp. 304–306; Heng et al. (2018), pp. 119–123; Deaton and Muellbauer (1980), pp. 313–314, uploaded as 9454.pdf.
+:::
+
+## 3. Dominick’s dataset
+
+**Why we want to use it**
+
+- Weekly store–product sales, prices and product information
+- Potential to compare beer groups within the same retail setting
+- Used the data before in another course, however worked with shampoo
+
+**Things to clarify**
+
+- Historical data from one Chicago-area chain
+- Package sizes, missing sales and coverage of non-alcoholic beer
+
+Would a newer dataset be preferable, or do you think Dominick's data is fine?
+
+::: notes
+The main attraction is that sales and prices can be linked to identifiable products over time. However, the data are historical, from the late-1980s/1990s setting, and we need to verify the exact years available in the beer files we use. We should not describe the analysis as representing today’s US beer market.
+
+We would need to check package sizes, consistent quantity units, missing observations, changing product availability and whether the proposed groups have enough observations. We have not completed those checks. Another choice is whether to combine stores or work with store-level observations.
+
+Ask: Is the age of the data acceptable if we clearly frame this as an historical study? Would a newer Norwegian or other dataset be preferable? Is there a course dataset with a cleaner price-and-quantity structure? Would you advise aggregating across stores, or using a smaller consistent store sample?
+
+Do not spend time defending a final choice: the purpose is to get guidance on feasibility. Source: Dominick’s documentation previously consulted and linked in the group draft: https://www.chicagobooth.edu/research/kilts/research-data/dominicks . Exact beer-sample coverage remains to be checked by the group.
+:::
+
+## 4. Theory: how much depth is expected?
+
+**Our proposed approach**
+
+- Briefly explain what Rotterdam and AIDS describe
+- Present the model equations and define their variables in the paper
+- Explain elasticities and the restrictions we will test
+- Use the literature to support the explanation
+
+What must we explain ourselves, and how much derivation is expected?
+
+::: notes
+Our current understanding is that Rotterdam relates changes in quantities to changes in prices and real expenditure, while AIDS explains how expenditure shares depend on prices and expenditure. We are still learning the details, so we would like to confirm the required level of theory.
+
+The supplied instructions say that full model derivations are not required. Our plan is therefore to present the equations, explain the variables, describe the restrictions and show how the elasticities should be understood. We want to check whether that is enough, rather than fill the paper with mathematics we cannot confidently explain.
+
+Ask: Which theoretical assumptions should receive most attention? How much should we explain adding-up, homogeneity and symmetry? Is the linear approximation, LA/AIDS, acceptable, or do you expect exact nonlinear AIDS? Which reading or lecture notes should guide the elasticity formulas?
+
+Sources: group draft p. 8, assignment statement that derivations are not required; Deaton and Muellbauer (1980), pp. 313–315; Fousekis and Revell (2000), p. 12. No equations need to be explained on this slide.
+:::
+
+## 5. Coding part in R
+
+**Basic requirements are:**
+
+- Run and verify the analysis ourselves in **R**
+
+- Submit the clean dataset and reproducible code
+
+**Our work approach:**
+
+- Download data
+
+- Clean data
+
+- Statistical analysis
+
+- Construct models
+
+::: notes
+We normally work in R and Quarto. Our plan is to construct the variables, estimate the models, check the restrictions, and produce tables of elasticities with uncertainty measures. We have not run the models yet.
+
+We would like to clarify the balance between using established functions and showing the mechanics ourselves. Using provided code would help us focus on understanding and interpreting the models, but we need to know what adaptation and explanation are expected.
+
+Ask: Is there a preferred R package or provided script for each model? Can we adapt that code with acknowledgement? Do you expect us to construct the restrictions and elasticity calculations explicitly? What diagnostic checks are essential at this course level? Should we compare restricted and unrestricted versions of both models, and how formal should the cross-model comparison be?
+
+The AI rules permit code assistance and debugging, but we must run the analysis and verify it ourselves. We are not asking for AI to estimate the models for us. Source: the supplied assessment and AI-use instructions.
+:::
+
+## 6. Paper format and our usual workflow
+
+**How we work**
+
+- R analysis organised in **Quarto**
+- A PDF with a front cover, headings, tables and figures
+- Citations and references managed through **refs.bib**
+- This presentation uses **Quarto + Reveal.js**
+
+::: notes
+Our usual approach is to write assignments in Quarto, run R code, and render a PDF with a cover page and references generated from a bibliography file. We also used Quarto and Reveal.js to prepare these slides, with AI assistance for the presentation as permitted.
+
+We understand that the paper should broadly follow a journal article: introduction, relevant literature and theory, data and methods, results, discussion and conclusions. The 20–35 double-spaced pages are a guideline, rather than a strict limit. We would like to know how much flexibility we have in presentation and organisation.
+
+Ask: Are a cover page and contents page appropriate, or would you prefer a more compact journal format? Can theory and methods overlap or be combined to avoid repetition? Should detailed code and extra results go in appendices or only in separate files? Which formatting requirements are essential?
+
+All term-paper prose must be written by us under the course rules. This presentation is separate from the written paper. Sources: supplied assignment guidelines and the group’s existing Quarto draft/template.
+:::
+
+## 7. What should we prioritise next?
+
+Before going further, we would value your advice on:
+
+- **Scope:** Is the beer question focused enough?
+- **Data:** Should we continue with Dominick’s?
+- **Methods:** Which model specification and coding example should we start with?
+- **Priorities:** What matters most for a strong paper?
+
+::: notes
+We would like to leave with a manageable next step: a suitable dataset, a clear product grouping, and a starting point for estimating the two required models.
+
+We are not expecting to settle every technical issue today. The most helpful feedback would be whether we should keep the present direction and which parts deserve our attention first.
+
+Optional follow-up questions: What common mistakes should we avoid? What would make the analysis too ambitious for this assignment? If the non-alcoholic category is too small, would a simpler grouping still give us a worthwhile question? Is there anything important missing from our proposed approach?
+
+Finish by noting the professor’s recommendations and confirming the first action the group will take. There are no estimated results or final methodological decisions to defend at this stage.
+:::

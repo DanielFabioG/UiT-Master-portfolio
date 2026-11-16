@@ -1,0 +1,265 @@
+---
+format: 
+  pdf:
+    include-before-body:
+      - dokumentobjekter/texstuff/forside.tex  
+    geometry:
+      - top=20mm
+      - left=20mm
+      - heightrounded
+    fontsize: 12pt
+    mainfont: Times New Roman
+    documentclass: scrartcl
+    papersize: a4
+    toccolor: black
+    toc-depth: 2
+    number-sections: true
+execute:
+  enabled: true
+echo: false
+message: false
+warning: false
+bibliography: dokumentobjekter/texstuff/references.bib
+csl: dokumentobjekter/texstuff/norsk-apa-manual.csl
+header-includes:
+  - \usepackage{wrapfig}
+  - \usepackage{subcaption}
+  - \usepackage{amsmath}
+  - \usepackage{cancel}
+  - \usepackage{hyperref}
+  - \usepackage{tikz}
+  - \usepackage{setspace}
+  - \setstretch{1.5}
+  - \usetikzlibrary{shapes.geometric, arrows, arrows.meta, positioning, calc}
+  - \usepackage{tabularx}
+  - \renewcommand{\maketitle}{}
+  - \usepackage{fancyhdr}
+  - \pagestyle{fancy}
+  - \fancyhf{} 
+  - \fancyhead[L]{\rightmark}
+  - \fancyhead[R]{\thepage}
+  - \fancyfoot[C]{\thepage}
+  - \usepackage{colortbl}
+  - \definecolor{cornflowerblue}{RGB}{100,149,237}
+  - \definecolor{darkblue}{RGB}{115,150,255}
+  - \definecolor{lighterblue}{RGB}{131, 191, 212} 
+  - \definecolor{lightblue}{RGB}{178,211,220}
+nocite: |
+  @*
+editor: 
+  markdown: 
+    wrap: 72
+---
+
+\hypersetup{linkcolor=black}
+\tableofcontents
+\listoffigures
+\hypersetup{linkcolor=blue}
+\newpage
+\thispagestyle{plain}
+\begin{center}
+    \Large
+    \textbf{Abstract}
+\end{center}
+
+Epic abstract about the effect of demand on beer sales in USA (Chicago).
+
+\newpage
+
+## Overview
+
+Your paper should follow the overall structure of a journal article. You are not expected to produce a publishable paper, but a solid draft with emphasis on data, estimation, and interpretation of results. In this term paper, you must estimate both the Rotterdam model and the Almost Ideal Demand System (AIDS) and compare the results. Length guideline: No strict limit, but a reasonable range is 20–35 double-spaced pages for the main text. References and appendices do not count toward the page range. Delivery: The assessment will be based solely on the written term paper. However, you are required to submit a clean version of the dataset used for your estimations, as well as the R code (corresponding to the results reported in the paper). Individual work or groups of up to 3 Students: Groups of 3 are highly recommended.
+
+Guidelines for Main Components (you are not required to follow these strictly; use your judgment to cover the elements outlined here in the way you find most appropriate)
+
+How to earn a high grade
+
+• Cover all required components and estimate both models correctly. 
+• Prioritize analysis: connect results to economic theory and the market context; argue clearly and consistently. 
+• Provide credible, actionable implications for industry and policy based on your preferred model’s results. 
+• Present clean, readable tables and figures; label and reference them in the text; keep notation consistent throughout.
+
+## Supervision note scribbles
+
+Theory and data: Why should we include alcoholic or non-alcoholic beer, we can 
+
+References: Very good to use many references, not interesting to say this say that, use the papers as a clear story, analyze the literature and use it for supporting structures for our topic. 
+
+We can use more literature than this, but also use extended literature related to our topic.
+
+Use it for assumptions, then see the results and compare to earlier literature.
+
+We are supposed to do the aggregating ourselves, and find our theory and literature to do our estimation and models.
+
+Why are we aggregating it this way
+
+Look and see if we find some better and more suitable data.
+
+Tell why the data is good and valuable, why in dominicks dataset? Why is it interesting and valuable more than import and export data from another dataset?
+
+This differentiates the quality in the term paper.
+
+Why does these facts provide valuable and interesting information, why did we choose this topic why aggregate the different beers in the way we will do then, why chicago?
+
+The importance is why?
+
+Theory:
+
+Bad: repitition from papers before not interesting or lecture notes
+
+	- How to derive not interesting
+
+Good: Limitations on the models, and different results, if we can expand on the theory interesting
+
+Then use early theory as support and maaaaybe build on it
+
+We do not need to derive the model, when we present use the standard equations, eq 1 what beer eq 2 what beer, then limitations, that’s enough, if we repeat the lecture notes its too much. Use the space to dig in to our topic, 
+
+The big questions is why do we do things, why?
+
+Estimate and get different results? Or maybe same, A and B compete the most, some can also be inconsistent or contradict. Explain why, and then in discussion we can try to conclude why its consistent or inconsistent, whats the implications?
+
+Use sources on how we aggregate, then we can discuss maybe another supervision.
+
+We can also do two stages, beer only, then we can compare to different stages, our understanding of that, and regression with reestimates on different spesifications on the segments and find insights.
+
+\newpage
+
+```{r}
+# Removing all objects from the environment to avoid any conflicts with previous code
+# Then loading used packages
+rm(list = ls())
+library(tidyverse)
+```
+
+```{r}
+# Loading the data we need for the rotterdam and AIDS models
+# The wber file size is 250mbs so we need to download it and then load it, even github wont take such a big file size
+# Link to the file here, its a zip file so it has to be unpacked also.
+# wber <- data.table::fread("dokumentobjekter/data/wber.csv")
+# wber <- wber %>% dplyr::select(-PRICE_HEX, -PROFIT_HEX)
+# names(wber) <- c("store", "upc", "week", "move", "qty",
+#                  "price", "sale", "profit", "ok")
+# 
+# 
+# # Doing the same for the other data file we need for the analysis
+# # This one is an actual csv we can download directly from the website
+# upcber <- data.table::fread("https://www.chicagobooth.edu/research/kilts/research-data/-/media/enterprise/centers/kilts/datasets/dominicks-dataset/upc_csv-files/upcber.csv")
+# names(upcber) <- c("com_code", "upc", "descrip", "size", "case", "nitem")
+# 
+# beer <- left_join(wber, upcber, by = "upc")
+
+```
+
+```{r}
+# Loading the pre-processed data from github https://github.com/DanielFabioG/data/raw/refs/heads/main/beer.RData
+load(url("https://github.com/DanielFabioG/data/raw/refs/heads/main/beer.RData"))
+
+# Counting the descrip to see how many beers are in the dataset
+
+count(beer, descrip) %>%
+ arrange(desc(n))
+
+```
+
+
+# Introduction
+
+The assortment of beer products in the US market is vast and consists of more than 500 different beer products including non-alcoholic beer in our dataset. The choices an american consumer has to decide which beer can quite literally be very overwhelming. The question is then, how strongly do consumers substitute between different beer segments, and can the Rotterdam and AIDS model lead to different conclusions about price sensitivity and competition?
+
+To try to find answers to these questions, we will use the Dominick's dataset which contains weekly data on beer sales in the Chicago area. Our analysis will focus on the demand for beer products in the US market, and we will estimate both the Rotterdam and AIDS models to compare their results. We will also discuss the implications of our findings for the beer industry and policy. Since the dataset also contains data on non-alcoholic beer, we will also look at the demand for non-alcoholic beer and how it compares to the demand for alcoholic beer.
+
+In the next section we will present a literature review of relevant studies on the same or similar products/commodities. We will then present our theoretical framework, data section, methods, estimated results, and discussion and implications.
+
+## Literature review
+
+### The german whitefish market
+
+@bronnmann2016german uses the Almost Ideal Demand System (AIDS) to estimate the demand for whitefish in Germany. They find that the demand for whitefish is  relatively price elastic, and that there is a significant substitution effect between different types of whitefish. They did not estimate a Rotterdam model, however we will be building upon their work by estimating the AIDS model and also the Rotterdam model to compare the results.
+
+### Meat demand in the UK
+
+In United Kingdom, @fousekis2000meat estimates the demand for meat using both the Rotterdam and AIDS model. They find that the Rotterdam model better explain consumers retail purchasing behavior with fixed price effects, compared to the AIDS model with variable price effects. They also found that the real expenditure and the Hicksian demand elasticities are found to be different than earlier studies using AIDS models. 
+
+### The Silence of the lambdas
+
+@alston1993silence tests both the AIDS and Rotterdam models on the demand for U.S meat products. In conclusion they find that the Almost Ideal System model is rejected, while the Rotterdam model is not. They also state in the paper that the Rotterdam model is seeing renewed interest in demand for alcoholic beverages.
+
+### Competition of beverage products in the current market
+
+@heng2018competition is a similar study to ours, but they look at the competition between beverage products in the current market. Their findings indicate that consumers substitute refrigerated juice with low calorie drinks, and that a larger prooprtion of consumers substitute soft drinks with fruit drinks.
+
+# Brief theory framework
+
+
+## The Rotterdam Model
+
+The Rotterdam model was introduced in @theil1965analysis and is based on the idea that consumers have a utility function that is linear in the logarithm of prices and quantities. The model can be estimated using a system of equations, and allows for the estimation of both own-price and cross-price elasticities. The Rotterdam model is a flexible functional form that can accommodate a wide range of demand systems, and has been widely used in empirical studies of consumer demand.
+
+## An Almost Ideal Demand System
+
+The AIDS model is a newer approach to estimating demand systems, and was proposed in @deaton1980almost. The model is based on the idea that consumers have a utility function that is linear in the logarithm of prices and quantities, and that the demand for each good is a function of the prices of all goods and the total expenditure on all goods. The model can be estimated using a system of equations, and allows for the estimation of both own-price and cross-price elasticities.
+
+
+
+
+## The price index (index name here)
+
+## Elasticities
+
+## Limitations of the linear approximation (LA)
+
+### Justify your product choices and any aggregation decisions you make.
+
+
+
+# Data section
+
+### Describe sources, coverage (time, geography, products), variable construction, cleaning/edits, and transformations. Use graphs where they aid understanding.
+
+Data from Dominick's dataset where we look at beer sale demand.
+
+https://www.chicagobooth.edu/-/media/enterprise/centers/kilts/datasets/dominicks-dataset/dominicks-manual-and-codebook_kiltscenter.pdf
+(Handbook for the dataset)
+
+https://www.chicagobooth.edu/research/kilts/datasets/dominicks (Dataset)
+
+# Methods
+
+### State both the Rotterdam and AIDS models, the estimation approach, and the theoretical restrictions to be tested for each model. 
+
+You are not required to derive these models; rather, present them for the purpose of your analysis in the way they are typically presented in published journal articles.
+
+# Estimated results
+
+### Rotterdam model
+
+
+### AIDS model
+
+Estimate each model correctly. Report tests of the theoretical restrictions. Compare alternative estimation both within each model (unrestricted vs. restricted) and across models (Rotterdam vs. AIDS). Compute elasticities. Justify your preferred model. Please use table selectively to ensure clarity and maintain readability in this section.
+
+# Discussion and implications
+
+
+Provide a thorough, well-reasoned interpretation of the final results on which your conclusions rest. Use these results to draw credible implications for the market/industry and, where relevant, for policy. Acknowledge limitations and discuss how they may affect interpretation and its validity.
+
+\clearpage
+
+# References {.unnumbered}
+
+::: {#refs}
+:::
+
+\newpage
+
+# Appendix {.unnumbered}
+
+
+\appendix
+
+\section{Appendix General AI Use}
+
+When we write code in Visual Studio Code or RStudio, we use a plugin called GitHub Copilot. This plugin will try to suggest code or sentences(even paragraphs) as we are writing. We sometimes accept the suggestions but only if it's how we would do it. There are also cases where it can be seen in the code that we comment with a "plotting year on x, value on y" so that it will just autofill the code we usually use.
+
+Documenting each of these instances would be cumbersome and wouldn't serve any purpose. All code sections with such comments can be assumed to have involved GitHub Copilot. More information about this AI tool is available at <https://github.com/features/copilot>.
