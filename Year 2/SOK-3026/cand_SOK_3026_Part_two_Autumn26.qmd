@@ -184,25 +184,14 @@ Introduction here
 
 ## Literature review
 
+Municipal mergers may reduce the cost of administration because several municipalities can share management team, payroll system and other functions before maintained separately. Evidence from Denmark support this argument. Using the Danish reform in 2007 to compare merged and unchanged municipalities, @blom2014size found that mergers lowered adimistrative costs per inhabitant. Later a broader analysis of the same reform, blom2016jurisdiction found that savings in some spending areas were offset by increases elsewhere. Together, these findings explain why the choice of outcome can matter. A municipality could spend less on administration and redirect those resources to local services while its total expenditure remains unchanged.
 
-### Previous literature 1
-
-
-
-### Previous literature 2
-
-
-
-### Previous literature 3
-
-
-
-### Previous literature 4
+In Norway we do not have a direct comparison. The closest we get is a paper I cannot find.
 
 
 # Brief theory framework
 
-
+The scope for administrative savings depends on which costs can be shared and how quicky they can be adjusted. A merged municipality can operate one payroll system for the combined population, but it may initially have to maintain both existing systems while transferring records and training staff. Employment protections may also delay changes in wage expenditure. We therefore expect any reduction in administrative spending per resident to be more visible several years after a merger than in its first year. The size and timing of that change are our empirical questions.
 
 # Data section
 
@@ -212,7 +201,7 @@ Introduction here
 
 # Methods
 
-### State both the Rotterdam and AIDS models, the estimation approach, and the theoretical restrictions to be tested for each model. 
+###  
 
 You are not required to derive these models; rather, present them for the purpose of your analysis in the way they are typically presented in published journal articles.
 
