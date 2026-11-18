@@ -1,0 +1,246 @@
+---
+format: 
+  pdf:
+    include-before-body:
+      - dokumentobjekter/texstuff/forside2.tex  
+    geometry:
+      - top=20mm
+      - left=20mm
+      - heightrounded
+    fontsize: 12pt
+    mainfont: Times New Roman
+    documentclass: scrartcl
+    papersize: a4
+    toccolor: black
+    toc-depth: 2
+    number-sections: true
+execute:
+  enabled: true
+echo: false
+message: false
+warning: false
+bibliography: dokumentobjekter/texstuff/references2.bib
+csl: dokumentobjekter/texstuff/norsk-apa-manual.csl
+header-includes:
+  - \usepackage{wrapfig}
+  - \usepackage{subcaption}
+  - \usepackage{amsmath}
+  - \usepackage{cancel}
+  - \usepackage{hyperref}
+  - \usepackage{tikz}
+  - \usepackage{setspace}
+  - \setstretch{1.5}
+  - \usetikzlibrary{shapes.geometric, arrows, arrows.meta, positioning, calc}
+  - \usepackage{tabularx}
+  - \renewcommand{\maketitle}{}
+  - \usepackage{fancyhdr}
+  - \pagestyle{fancy}
+  - \fancyhf{} 
+  - \fancyhead[L]{\rightmark}
+  - \fancyhead[R]{\thepage}
+  - \fancyfoot[C]{\thepage}
+  - \usepackage{colortbl}
+  - \definecolor{cornflowerblue}{RGB}{100,149,237}
+  - \definecolor{darkblue}{RGB}{115,150,255}
+  - \definecolor{lighterblue}{RGB}{131, 191, 212} 
+  - \definecolor{lightblue}{RGB}{178,211,220}
+nocite: |
+  @*
+editor: 
+  markdown: 
+    wrap: 72
+---
+
+\hypersetup{linkcolor=black}
+\tableofcontents
+\listoffigures
+\hypersetup{linkcolor=blue}
+\newpage
+\thispagestyle{plain}
+\begin{center}
+    \Large
+    \textbf{Abstract}
+\end{center}
+
+Epic abstract about the diff-in-diff effects on municipal structures on different outcomes.
+
+\newpage
+
+## The exam
+
+The exam for SOK-3026 is a term paper. Students apply the Difference-in-Differences (DiD) method to analyse the impact of an economic policy or reform on an economic outcome, using publicly available panel data. The paper should follow the structure of a research article.
+
+## Suggested topics and data sources
+
+
+You may evaluate the effect of changes in municipal structure (Kommunereformen) on different outcomes. You may also propose original topics from any field of economics (health, education, trade, labour, and so on). Replications of existing studies are permitted if they use a different dataset or extend the original analysis, and if they avoid plagiarism.
+
+
+## The 2014–2020 local government reform
+
+Norway’s municipal structure changed as part of the 2014–2020 local government reform (Kommunereformen). Most mergers took effect on 1 January 2020, reducing the number of municipalities from 422 to 356. Since then activity has been limited, with no new mergers and only one notable split (in 2024). The 2020 changes involved 119 municipalities merging into 47 new ones.
+
+Examples of indicators that might be affected by the reform are listed below. You are free to use other indicators available at ssb.no/statbank/list/kostrahoved.
+
+## How to construct pre-2020 data for proto-municipalities
+
+When two or more municipalities merge, the post-2020 unit is a new (or enlarged) entity. Thepre-2020 data are reported for the old, smaller municipalities. To use DiD you need one consistent unit that can be followed over time. That unit is the proto-municipality: the artificial municipality you create by aggregating the pre-2020 data of all the municipalities that later became the new entity.
+
+In the final panel the proto-municipality and the post-2020 municipality must share the same identifier (the same id or municipality code). That is what makes the unit comparable before and after the reform. Without a common identifier the panel is broken and the DiD comparison is invalid.
+ 
+How to aggregate:
+
+• Totals (expenditures, number of cases, revenues, etc.): sum the values of the old municipalities.
+• Per-inhabitant measures: obtain the population of each old municipality (for example from SSB Table 11805), compute the weighted average or, equivalently, sum the underlying totals and divide by the sum of the populations. Do not simply average the rates.
+
+Example 1: Lillestrøm. Lillestrøm (knr 3201) did not exist before 2020. It was created by merging Fet (knr 0227), Skedsmo (knr 0230) and Sørum (knr 0226).
+
+• Pre-2020: create one “proto-Lillestrøm” row per year by aggregating the three old municipalities.
+• Post-2020: use the official Lillestrøm data.
+• Give both the proto-rows and the post-2020 rows the same identifier (for example knr 3201).
+
+There is no pre-2020 Lillestrøm series, so aggregation is the only way to obtain a pre-period for the treatment unit.
+ 
+Example 2: Asker. Asker already existed before 2020 (old knr 0620). In 2020 it was enlarged by
+merging with Hurum (knr 0628) and Røyken (knr 0627). The post-2020 Asker (knr 3205) therefore
+covers a larger area than the old Asker.
+
+• Pre-2020: aggregate old Asker + Hurum + Røyken into one “proto-Asker” row per year.
+• Post-2020: use the official (enlarged) Asker data.
+• Again, use the same identifier for the proto-rows and the post-2020 rows.
+
+If you used only the old Asker series for the pre-period, you would be comparing a smaller geographical unit before the reform with a larger unit after the reform. That breaks the consistency of the treatment unit.
+
+Summary of the difference.
+
+• Lillestrøm: the post-2020 municipality is entirely new. Aggregation is required to create any pre-period at all.
+• Asker: the post-2020 municipality is an enlargement of an existing one. Aggregation is still required so that the pre-period matches the post-period geographical area.
+
+In both cases the goal is the same: one stable unit, one identifier, a clean before–after comparison.
+
+## Important notes
+
+• You are free to evaluate other policies.
+• Include as many municipalities as possible in both treatment and control groups, because the data are aggregated at the municipality level.
+• For merged municipalities, construct a consistent geographical unit (proto-municipality) for the pre-period so that the treatment unit is comparable over time.
+
+
+## Supervision note scribbles
+
+
+References: Very good to use many references, not interesting to say this say that, use the papers as a clear story, analyze the literature and use it for supporting structures for our topic. 
+
+We can use more literature than recommended literature, but also use extended literature related to our topic.
+
+Use it for assumptions, then see the results and compare to earlier literature.
+
+Look and see if we find some better and more suitable data.
+
+This differentiates the quality in the term paper.
+
+Why does these facts provide valuable and interesting information, why did we choose this topic etc
+
+The importance is why?
+
+Theory:
+
+Bad: repitition from papers before not interesting or lecture notes
+
+	- How to derive not interesting
+
+Good: Limitations on the models, and different results, if we can expand on the theory interesting
+
+Then use early theory as support and maaaaybe build on it
+
+We do not need to derive the model, when we present use the standard equations, then limitations, that’s enough, if we repeat the lecture notes its too much. Use the space to dig in to our topic, 
+
+The big questions is why do we do things, why?
+
+Estimate and get different results? Or maybe same, A and B compete the most, some can also be inconsistent or contradict. Explain why, and then in discussion we can try to conclude why its consistent or inconsistent, whats the implications?
+
+\newpage
+
+```{r}
+# Removing all objects from the environment to avoid any conflicts with previous code
+# Then loading used packages
+rm(list = ls())
+library(tidyverse)
+```
+
+```{r}
+# Data loading
+
+```
+
+```{r}
+# Loading the dataset
+
+```
+
+
+# Introduction
+
+Introduction here
+
+## Literature review
+
+
+### Previous literature 1
+
+
+
+### Previous literature 2
+
+
+
+### Previous literature 3
+
+
+
+### Previous literature 4
+
+
+# Brief theory framework
+
+
+
+# Data section
+
+### Describe sources, coverage (time, geography, products), variable construction, cleaning/edits, and transformations. Use graphs where they aid understanding.
+
+
+
+# Methods
+
+### State both the Rotterdam and AIDS models, the estimation approach, and the theoretical restrictions to be tested for each model. 
+
+You are not required to derive these models; rather, present them for the purpose of your analysis in the way they are typically presented in published journal articles.
+
+# Estimated results
+
+## Diff-in-diff
+
+# Discussion and implications
+
+
+Provide a thorough, well-reasoned interpretation of the final results on which your conclusions rest. Use these results to draw credible implications for the market/industry and, where relevant, for policy. Acknowledge limitations and discuss how they may affect interpretation and its validity.
+
+\clearpage
+
+# References {.unnumbered}
+
+::: {#refs}
+:::
+
+\newpage
+
+# Appendix {.unnumbered}
+
+
+\appendix
+
+\section{Appendix General AI Use}
+
+When we write code in Visual Studio Code or RStudio, we use a plugin called GitHub Copilot. This plugin will try to suggest code or sentences(even paragraphs) as we are writing. We sometimes accept the suggestions but only if it's how we would do it. There are also cases where it can be seen in the code that we comment with a "plotting year on x, value on y" so that it will just autofill the code we usually use.
+
+Documenting each of these instances would be cumbersome and wouldn't serve any purpose. All code sections with such comments can be assumed to have involved GitHub Copilot. More information about this AI tool is available at <https://github.com/features/copilot>.
