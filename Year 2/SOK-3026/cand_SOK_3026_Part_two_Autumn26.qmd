@@ -62,7 +62,7 @@ editor:
     \textbf{Abstract}
 \end{center}
 
-Epic abstract about the diff-in-diff effects on municipal structures on different outcomes.
+Epic abstract about the diff-in-diff effects on municipal structures on government expenditure.
 
 \newpage
 
@@ -124,40 +124,6 @@ In both cases the goal is the same: one stable unit, one identifier, a clean bef
 • Include as many municipalities as possible in both treatment and control groups, because the data are aggregated at the municipality level.
 • For merged municipalities, construct a consistent geographical unit (proto-municipality) for the pre-period so that the treatment unit is comparable over time.
 
-
-## Supervision note scribbles
-
-
-References: Very good to use many references, not interesting to say this say that, use the papers as a clear story, analyze the literature and use it for supporting structures for our topic. 
-
-We can use more literature than recommended literature, but also use extended literature related to our topic.
-
-Use it for assumptions, then see the results and compare to earlier literature.
-
-Look and see if we find some better and more suitable data.
-
-This differentiates the quality in the term paper.
-
-Why does these facts provide valuable and interesting information, why did we choose this topic etc
-
-The importance is why?
-
-Theory:
-
-Bad: repitition from papers before not interesting or lecture notes
-
-	- How to derive not interesting
-
-Good: Limitations on the models, and different results, if we can expand on the theory interesting
-
-Then use early theory as support and maaaaybe build on it
-
-We do not need to derive the model, when we present use the standard equations, then limitations, that’s enough, if we repeat the lecture notes its too much. Use the space to dig in to our topic, 
-
-The big questions is why do we do things, why?
-
-Estimate and get different results? Or maybe same, A and B compete the most, some can also be inconsistent or contradict. Explain why, and then in discussion we can try to conclude why its consistent or inconsistent, whats the implications?
-
 \newpage
 
 ```{r}
@@ -167,6 +133,7 @@ rm(list = ls())
 library(tidyverse)
 library(readr)
 library(dplyr)
+library(openxlsx)
 ```
 
 ```{r}
@@ -209,27 +176,11 @@ library(dplyr)
 # the files were local so to not have any troubles reproducing the analysis the completed panel file is downloaded from github.
 
 
-
-
-```
-
-```{r}
 # loading the pre aggregated file
 panel <- read_csv("https://raw.githubusercontent.com/DanielFabioG/data/refs/heads/main/panel.csv")
 
-```
-```{r}
-# Frozen official code lists (one row per 2020 municipality). Each period lists
-# the raw codes to sum. The 2020 code is also the stable analytical ID.
-# Kartverket, mapping 2019 -> 2020:
-# https://kartverket.no/til-lands/kommunereform/tekniske-endringer-ved-sammenslaing-og-grensejustering/komendr2020
-# Kartverket, mapping 2023 -> 2024:
-# https://kartverket.no/til-lands/fakta-om-norge/norske-fylke-og-kommunar
-# SSB KLASS 131, earlier changes (including Trøndelag renumbering):
-# https://data.ssb.no/api/klass/v1/classifications/131/changes.json?from=2015-01-01&to=2026-01-01
-# Boundary exceptions:
-# https://www.ssb.no/metadata/alle-endringer-i-de-regionale-inndelingene
-# Multiple outgoing destinations cannot be apportioned using municipal totals.
+# crosswalk for municipality mergers and splits.
+# This code is not written by me, Astra 6.2 wrote it to fix all the municipality mergers and splits.
 crosswalk <- read.delim(text = "
 id	y2015	y2017	y2018	y2019	y2024	status
 0301	0301	0301	0301	0301	0301	Oslo accounting issue
@@ -590,6 +541,25 @@ id	y2015	y2017	y2018	y2019	y2024	status
 5444	2030	2030	2030	2030	5605	include
 ", colClasses = "character", strip.white = TRUE)
 
+
+```
+
+
+
+```{r}
+# Code written by ChatGPT 6.2 to complete the dataset for the diff-in-diff.
+# Frozen official code lists (one row per 2020 municipality). Each period lists
+# the raw codes to sum. The 2020 code is also the stable analytical ID.
+# Kartverket, mapping 2019 -> 2020:
+# https://kartverket.no/til-lands/kommunereform/tekniske-endringer-ved-sammenslaing-og-grensejustering/komendr2020
+# Kartverket, mapping 2023 -> 2024:
+# https://kartverket.no/til-lands/fakta-om-norge/norske-fylke-og-kommunar
+# SSB KLASS 131, earlier changes (including Trøndelag renumbering):
+# https://data.ssb.no/api/klass/v1/classifications/131/changes.json?from=2015-01-01&to=2026-01-01
+# Boundary exceptions:
+# https://www.ssb.no/metadata/alle-endringer-i-de-regionale-inndelingene
+# Multiple outgoing destinations cannot be apportioned using municipal totals.
+
 # Assign treatment from multiple 2019 predecessors. Sample rules are applied
 # before aggregation. Code-only changes contribute one predecessor.
 sample_units <- subset(crosswalk, status == "include")
@@ -640,39 +610,74 @@ excluded <- subset(crosswalk, status != "include")
 
 # Optional: estimates in current NOK per inhabitant, clustered by stable unit.
 # fixest::feols(admin_nok_pc ~ did | id + year, data = df_did, vcov = ~id)
-# write.csv(df_did, "did_panel.csv", row.names = FALSE, fileEncoding = "UTF-8")
+
+# save the panel data as excel file
+wb <- createWorkbook()
+addWorksheet(wb, "panel_data")
+writeData(wb, sheet = "panel_data", df_did)
+saveWorkbook(wb, "dokumentobjekter/data/final_data.xlsx", overwrite = TRUE)
 
 ```
 
 
 # Introduction
 
-Introduction here
+The Norwegian municipal reform of 2020 reduced the number of municipalities from 422 to 356. The reform was motivated by the idea that larger municipalities can provide better services at lower cost. One potential source of savings is administrative spending, which may be reduced when several municipalities share management teams, payroll systems and other functions. This paper examines whether administrative spending per resident declined in merged municipalities relative to unchanged municipalities after the reform.
 
-## Literature review
 
-Municipal mergers may reduce the cost of administration because several municipalities can share management team, payroll system and other functions before maintained separately. Evidence from Denmark support this argument. Using the Danish reform in 2007 to compare merged and unchanged municipalities, @blom2014size found that mergers lowered adimistrative costs per inhabitant. Later a broader analysis of the same reform, @blom2016jurisdiction found that savings in some spending areas were offset by increases elsewhere. Together, these findings explain why the choice of outcome can matter. A municipality could spend less on administration and redirect those resources to local services while its total expenditure remains unchanged.
+## Background
 
-In Norway, an important question is when spending begins to change. @askim2025local found that municipalities increased their spending in current expenditure. Their study examines broader spending categories, leaving open whether the same pattern occured in the administration. This could matter for our analysis because an unusually high level of spending in 2019 could make a post-2020 reduction appear larger than it really is. We therefore examine the timing of any change in administrative spending per resident before and after the reform. This can allow us to assess whether the reform had a lasting effect on administrative efficiency or whether any observed changes were temporary.
+Lets open with a concrete budget question. When several municipalities merge, they may be able to reduce administrative costs by sharing resources and functions. However, the transition period can be costly as the merged entity needs to integrate the systems and staff of the predecessor municipalities. What is the net effect on administrative spending per resident? The cost per resident is a relevant measure because it accounts for the size of the population served by the municipality. A reduction in administrative spending per resident could indicate that the merged municipality is operating more efficiently, while an increase could suggest that the transition costs are outweighing any potential savings.
+
+
+## Research question
+
+How did gross administrative spending per resident change in Norwegian municipalities that merged on 1 January 2020, relative to municipalities with stable boundaries? Annual data from 2015 to 2025 allow us to examine the timing of any change in administrative spending per resident before and after the reform. This can allow us to assess whether the reform had a lasting effect on administrative efficiency or whether any observed changes were temporary.
+
+## Policy Context
+
+# Literature review
+
+## Danish evidence
+
+Municipal mergers may reduce the cost of administration because several municipalities can share management team, payroll system and other functions before maintained separately. Evidence from Denmark support this argument. Using the Danish reform in 2007 to compare merged and unchanged municipalities, @blom2014size found that mergers lowered adimistrative costs per inhabitant. Later @blom2016jurisdiction did a broader analysis of the same reform, and found that savings in some spending areas were offset by increases elsewhere. Together, these findings explain why the choice of outcome can matter. A municipality could spend less on administration and redirect those resources to local services while its total expenditure remains unchanged. Our study focuses on administrative spending per resident, which is a relevant measure of efficiency in the context of municipal mergers.
+
+## Norwegian context
+
+In Norway, an important question is when spending begins to change. @askim2025local found that municipalities increased their spending in current expenditure. Their study examines broader spending categories, leaving open whether the same pattern occured in the administration. This could matter for our analysis because an unusually high level of spending in 2019 could make a post-2020 reduction appear larger than it really is. We therefore examine the timing of any change in administrative spending per resident.
+
+The Danish studies provide a benchmark for administrative savings, while the Norwegian evidence raises a question about spending before implementation. We bring these questions together by following the 2020 Norwegian merger cohort through 2025.
 
 
 # Brief theory framework
 
-The scope for administrative savings depends on which costs can be shared and how quicky they can be adjusted. A merged municipality can operate one payroll system for the combined population, but it may initially have to maintain both existing systems while transferring records and training staff. Employment protections may also delay changes in wage expenditure. We therefore expect any reduction in administrative spending per resident to be more visible several years after a merger than in its first year. The size and timing of that change are our empirical questions.
+The scope for administrative savings depends on which costs can be shared and how quickly they can be adjusted. A merged municipality can operate one payroll system for the combined population, but it may initially have to maintain both existing systems while transferring records and training staff. Therefore transition costs could raise spending during preparation, while reductions in duplicated functions could appear over several years. Gradual staff turnover may also delay changes in wage expenditure. We therefore expect any reduction in administrative spending per resident to be more visible several years after a merger than in its first year. The size and timing of that change are our empirical questions.
+
+
+# Data
+
+## Sources
+
+The data come from Statistics Norway (SSB) and the Norwegian Mapping Authority (Kartverket). SSB provides annual data for gross operating expenditure on function 120 (municipal consolidated accounts, thousand NOK) at [table 12362](https://www.ssb.no/en/statbank/table/12362) and for total population on 31 December (persons) at [table 11805](https://www.ssb.no/en/statbank/table/11805), while Kartverket provides information on municipal boundaries and mergers. We use these sources to construct a panel dataset of Norwegian municipalities from 2015 to 2025, including both merged and unchanged municipalities.
+
+
+## Time period
 
 
 
-# Data section
-
-### Describe sources, coverage (time, geography, products), variable construction, cleaning/edits, and transformations. Use graphs where they aid understanding.
+## Variables
 
 
 
 # Methods
 
-### 
+## Design
 
-You are not required to derive these models; rather, present them for the purpose of your analysis in the way they are typically presented in published journal articles.
+## Parallel pre-trends
+
+## DiD specification
+
+
 
 # Estimated results
 
@@ -686,7 +691,7 @@ model <- fixest::feols(
 summary(model)
 ```
 
-## Diff-in-diff
+## Diff-in-diff estimates
 
 ```{r}
 df_did |>
@@ -719,22 +724,16 @@ model_pretrend <- fixest::feols(
 fixest::etable(model, model_no_2019, model_pretrend)
 ```
 
+## Robust checks (if relevant)
 
-
-# Discussion and implications
+# Discussion
 
 Administrative spending per resident declined in merged municipalities relative to controls after 2020. The estimated reduction was similar when we excluded 2019. However, spending in the two groups was already evolving differently before the reform, which limits the casual interpretation of the estimated reduction. The results are consistent with the idea that merged municipalities can share administrative costs, but they also suggest that other factors may have contributed to the observed changes in spending
 
+## Policy implications
 
 
-
-
-
-
-
-
-
-
+## Limitations
 
 
 
@@ -759,6 +758,8 @@ Administrative spending per resident declined in merged municipalities relative 
 
 \section{Appendix General AI Use}
 
-When we write code in Visual Studio Code or RStudio, we use a plugin called GitHub Copilot. This plugin will try to suggest code or sentences(even paragraphs) as we are writing. We sometimes accept the suggestions but only if it's how we would do it. There are also cases where it can be seen in the code that we comment with a "plotting year on x, value on y" so that it will just autofill the code we usually use.
+When I write code in Visual Studio Code or RStudio, I use a plugin called GitHub Copilot. This plugin will try to suggest code or sentences(even paragraphs) as I write. I sometimes accept the suggestions but only if it's how I would do it. There are also cases where it can be seen in the code that I comment with a "plotting year on x, value on y" so that it will just autofill the code we usually use.
 
 Documenting each of these instances would be cumbersome and wouldn't serve any purpose. All code sections with such comments can be assumed to have involved GitHub Copilot. More information about this AI tool is available at <https://github.com/features/copilot>.
+
+Doing coding has changed over the last few years, and ChatGPT 6.2 was used to help with merging the data and creating the panel dataset. The code was written in R and is available in the appendix, the code chunks is labeled as such. It was reviewed by me to ensure that it was correct and appropriate for the analysis.
