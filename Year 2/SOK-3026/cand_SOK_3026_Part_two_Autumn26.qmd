@@ -634,7 +634,7 @@ How did gross administrative spending per resident change in Norwegian municipal
 
 ## Policy Context
 
-Separate from the 2020 reform, the Norwegian government has been encouraging municipalities to merge since 2014. The reform was part of a broader effort to improve the efficiency and quality of local government services. The government provided financial incentives for municipalities to merge, including temporary grants to support the transition process @Utdanningsforbundet. Understanding the impact of these mergers on administrative spending per resident can inform future policy decisions regarding municipal consolidation.
+Separate from the 2020 reform, the Norwegian government has been encouraging municipalities to merge since 2014. The reform was part of a broader effort to improve the efficiency and quality of local government services. The government provided financial incentives for municipalities to merge, including temporary grants to support the transition process according to @Utdanningsforbundet. Understanding the impact of these mergers on administrative spending per resident can inform future policy decisions regarding municipal consolidation.
 
 # Literature review
 
@@ -656,7 +656,7 @@ The scope for administrative savings depends on which costs can be shared and ho
 
 ## Sources
 
-The data come from Statistics Norway (SSB) and the Norwegian Mapping Authority (Kartverket). SSB provides annual data for gross operating expenditure on function 120 (municipal consolidated accounts, thousand NOK) at [table 12362](https://www.ssb.no/en/statbank/table/12362) and for total population on 31 December (persons) at [table 11805](https://www.ssb.no/en/statbank/table/11805), while Kartverket provides information on municipal boundaries and mergers. We use these sources to construct a panel dataset of Norwegian municipalities from 2015 to 2025, including both merged and unchanged municipalities.
+The data come from Statistics Norway (SSB) and the Norwegian Mapping Authority (Kartverket). SSB provides annual data for gross operating expenditure on function 120 for administration (municipal consolidated accounts, thousand NOK) at [table 12362](https://www.ssb.no/en/statbank/table/12362) and for total population on 31 December (persons) at [table 11805](https://www.ssb.no/en/statbank/table/11805), while Kartverket provides information on municipal boundaries and mergers. We use these sources to construct a panel dataset of Norwegian municipalities from 2015 to 2025, including both merged and unchanged municipalities.
 
 ## Time period
 
@@ -703,21 +703,21 @@ tables 12362 and 11805, respectively.
 \end{table}
 ```
 
+The outcome $Y_{it}$ is administrative spending per resident in municipality $i$ in year $t$. The treatment indicator $D_i$ equals 1 for municipalities that merged on 1 January 2020 and 0 for control municipalities. The post indicator $P_t$ equals 1 for years 2020--2025 and 0 for years 2015--2019. The interaction term $D_i \times P_t$ captures the difference-in-differences effect of the mergers on administrative spending per resident.
 
+Prices are current NOK. Population weights the constituent municipalities when constructing the outcome; each resulting municipality-year receives equal weight in the regression. Define treated as membership in the 2020 merger cohort, post as 2020 onward, and did as their product.
 
 # Methods
 
 ## Design
 
+In 2015, the median population was approximately 22,200 in the treated proto-municipalities and 3,900 in the control municipalities. This difference matters if administrative spending per resident evolves differently in larger and smaller municipalities.
+
 ## Parallel pre-trends
 
-## DiD specification
 
 
-
-# Estimated results
-
-```{r}
+```{r, echo = FALSE}
 model <- fixest::feols(
   admin_nok_pc ~ did | id + year,
   data = df_did,
@@ -727,21 +727,59 @@ model <- fixest::feols(
 summary(model)
 ```
 
-## Diff-in-diff estimates
+```{r, echo = FALSE}
+colors = c("Merged in 2020" = "palevioletred", "Control" = "cornflowerblue")
 
-```{r}
+
 df_did |>
   mutate(group = if_else(treated == 1, "Merged in 2020", "Control")) |>
   group_by(year, group) |>
   summarise(mean_spending = mean(admin_nok_pc), .groups = "drop") |>
-  ggplot(aes(year, mean_spending, colour = group)) +
+  ggplot(aes(year, mean_spending, colour = colors)) +
   geom_vline(xintercept = 2019.5, linetype = "dashed", colour = "grey50") +
   geom_line(linewidth = 1) +
   geom_point() +
   scale_x_continuous(breaks = 2015:2025) +
   labs(x = NULL, y = "Administrative spending (NOK per resident)", colour = NULL) +
   theme_minimal()
+
+ggsave("dokumentobjekter/figs/pretrend_plot.png", width = 6, height = 4)
 ```
+
+
+
+## DiD specification
+
+
+
+# Estimated results
+
+OLS estimation, Dep. Var.: admin_nok_pc
+Observations: 3,352
+Fixed-effects: id: 305,  year: 11
+Standard-errors: Clustered (id) 
+---
+Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+RMSE: 1,845.6     Adj. R2: 0.86867 
+                Within R2: 0.021866
+
+## Diff-in-diff estimates
+
+Estimate
+<dbl>
+Std. Error
+<dbl>
+t value
+<dbl>
+Pr(>|t|)
+<chr>
+ 
+<fctr>
+did	-2237.93	319.058	-7.01418	1.5055e-11	***
+
+
+## Robust checks (if relevant)
+
 ```{r}
 # Does the 2019 peak drive the main result?
 model_no_2019 <- fixest::feols(
@@ -759,8 +797,6 @@ model_pretrend <- fixest::feols(
 
 fixest::etable(model, model_no_2019, model_pretrend)
 ```
-
-## Robust checks (if relevant)
 
 # Discussion
 
