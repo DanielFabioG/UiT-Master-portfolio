@@ -624,17 +624,17 @@ saveWorkbook(wb, "dokumentobjekter/data/final_data.xlsx", overwrite = TRUE)
 
 The Norwegian municipal reform of 2020 reduced the number of municipalities from 422 to 356. The reform was motivated by the idea that larger municipalities can provide better services at lower cost. One potential source of savings is administrative spending, which may be reduced when several municipalities share management teams, payroll systems and other functions. This paper examines whether administrative spending per resident declined in merged municipalities relative to unchanged municipalities after the reform.
 
-
 ## Background
 
 Lets open with a concrete budget question. When several municipalities merge, they may be able to reduce administrative costs by sharing resources and functions. However, the transition period can be costly as the merged entity needs to integrate the systems and staff of the predecessor municipalities. What is the net effect on administrative spending per resident? The cost per resident is a relevant measure because it accounts for the size of the population served by the municipality. A reduction in administrative spending per resident could indicate that the merged municipality is operating more efficiently, while an increase could suggest that the transition costs are outweighing any potential savings.
-
 
 ## Research question
 
 How did gross administrative spending per resident change in Norwegian municipalities that merged on 1 January 2020, relative to municipalities with stable boundaries? Annual data from 2015 to 2025 allow us to examine the timing of any change in administrative spending per resident before and after the reform. This can allow us to assess whether the reform had a lasting effect on administrative efficiency or whether any observed changes were temporary.
 
 ## Policy Context
+
+Separate from the 2020 reform, the Norwegian government has been encouraging municipalities to merge since 2014. The reform was part of a broader effort to improve the efficiency and quality of local government services. The government provided financial incentives for municipalities to merge, including temporary grants to support the transition process @Utdanningsforbundet. Understanding the impact of these mergers on administrative spending per resident can inform future policy decisions regarding municipal consolidation.
 
 # Literature review
 
@@ -648,11 +648,9 @@ In Norway, an important question is when spending begins to change. @askim2025lo
 
 The Danish studies provide a benchmark for administrative savings, while the Norwegian evidence raises a question about spending before implementation. We bring these questions together by following the 2020 Norwegian merger cohort through 2025.
 
-
 # Brief theory framework
 
 The scope for administrative savings depends on which costs can be shared and how quickly they can be adjusted. A merged municipality can operate one payroll system for the combined population, but it may initially have to maintain both existing systems while transferring records and training staff. Therefore transition costs could raise spending during preparation, while reductions in duplicated functions could appear over several years. Gradual staff turnover may also delay changes in wage expenditure. We therefore expect any reduction in administrative spending per resident to be more visible several years after a merger than in its first year. The size and timing of that change are our empirical questions.
-
 
 # Data
 
@@ -660,12 +658,50 @@ The scope for administrative savings depends on which costs can be shared and ho
 
 The data come from Statistics Norway (SSB) and the Norwegian Mapping Authority (Kartverket). SSB provides annual data for gross operating expenditure on function 120 (municipal consolidated accounts, thousand NOK) at [table 12362](https://www.ssb.no/en/statbank/table/12362) and for total population on 31 December (persons) at [table 11805](https://www.ssb.no/en/statbank/table/11805), while Kartverket provides information on municipal boundaries and mergers. We use these sources to construct a panel dataset of Norwegian municipalities from 2015 to 2025, including both merged and unchanged municipalities.
 
-
 ## Time period
 
+The time period covers 2015 to 2025, which allows us to examine administrative spending per resident before and after the 2020 municipal reform. This period includes five years of pre-merger fiscal-years (2015-2019) and six years of post-merger (2020-2025). The pre-reform period provides a baseline for comparison, while the post-reform period allows us to observe any changes in spending that may be attributable to the mergers.
 
+The dataset starts from 356 municipalities in 2020, and the construction excludes 51, leaving us with 305 municipalities. The 20 treated municipalities have all 11 years of observations. Nesna, Træna and Evenes lack expenditure in 2019, leaving 3,352 usable municipality-years out of 3,355 possible. This also explaing why dropping 2019 removes 302 observations.
 
 ## Variables
+
+```{=TEX}
+\begin{table}[htbp]
+\centering
+\caption{Variables used in the difference-in-differences analysis}
+\label{tab:did-variables}
+\begin{tabularx}{\linewidth}{@{}lX@{}}
+\hline
+\textbf{Variable} & \textbf{Definition} \\
+\hline
+Administrative spending ($Y_{it}$)
+  & Annual gross operating expenditure on administration
+    (KOSTRA function 120), in current NOK per resident.
+    Calculated as $1{,}000$ times total expenditure in thousand NOK
+    divided by the number of residents in municipality $i$ in year $t$. \\[4pt]
+Treated ($D_i$)
+  & Equals 1 in every year for municipalities that merged on
+    1 January 2020, and 0 for control municipalities. \\[4pt]
+Post ($P_t$)
+  & Equals 1 in 2020--2025 and 0 in 2015--2019, for both groups. \\[4pt]
+DiD ($D_i \times P_t$)
+  & Equals 1 for merged municipalities from 2020 onward,
+    and 0 for all other municipality-year observations. \\
+\hline
+\end{tabularx}
+
+\smallskip
+\begin{minipage}{\linewidth}
+\footnotesize
+\textit{Note.} Before a merger, expenditure and population are each
+summed across the predecessor municipalities before calculating spending
+per resident. Each municipality-year receives equal weight in the
+regression. Expenditure and population come from Statistics Norway
+tables 12362 and 11805, respectively.
+\end{minipage}
+\end{table}
+```
 
 
 
