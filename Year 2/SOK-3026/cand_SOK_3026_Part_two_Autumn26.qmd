@@ -53,6 +53,7 @@ editor:
 
 \hypersetup{linkcolor=black}
 \tableofcontents
+\listoftables
 \listoffigures
 \hypersetup{linkcolor=blue}
 \newpage
@@ -62,507 +63,286 @@ editor:
     \textbf{Abstract}
 \end{center}
 
-Epic abstract about the diff-in-diff effects on municipal structures on government expenditure.
+We examine how gross administrative spending per resident changed after Norway’s 2020 municipal mergers. We construct geographically consistent accounts for 20 merger units and 285 controls from 2015 to 2025. The difference-in-differences estimate is NOK 2,238 lower annual spending per resident relative to all controls and NOK 1,132 lower relative to controls in the treated population range. Spending in merged areas fell from its 2019 peak through 2022. After 2022 the gap widened mainly because control spending continued to rise. Faster pre-merger spending growth in the treated group limits how much of the difference can be attributed to consolidation.
 
 \newpage
 
-## The exam
-
-The exam for SOK-3026 is a term paper. Students apply the Difference-in-Differences (DiD) method to analyse the impact of an economic policy or reform on an economic outcome, using publicly available panel data. The paper should follow the structure of a research article.
-
-## Suggested topics and data sources
-
-
-You may evaluate the effect of changes in municipal structure (Kommunereformen) on different outcomes. You may also propose original topics from any field of economics (health, education, trade, labour, and so on). Replications of existing studies are permitted if they use a different dataset or extend the original analysis, and if they avoid plagiarism.
-
-
-## The 2014–2020 local government reform
-
-Norway’s municipal structure changed as part of the 2014–2020 local government reform (Kommunereformen). Most mergers took effect on 1 January 2020, reducing the number of municipalities from 422 to 356. Since then activity has been limited, with no new mergers and only one notable split (in 2024). The 2020 changes involved 119 municipalities merging into 47 new ones.
-
-Examples of indicators that might be affected by the reform are listed below. You are free to use other indicators available at ssb.no/statbank/list/kostrahoved.
-
-## How to construct pre-2020 data for proto-municipalities
-
-When two or more municipalities merge, the post-2020 unit is a new (or enlarged) entity. Thepre-2020 data are reported for the old, smaller municipalities. To use DiD you need one consistent unit that can be followed over time. That unit is the proto-municipality: the artificial municipality you create by aggregating the pre-2020 data of all the municipalities that later became the new entity.
-
-In the final panel the proto-municipality and the post-2020 municipality must share the same identifier (the same id or municipality code). That is what makes the unit comparable before and after the reform. Without a common identifier the panel is broken and the DiD comparison is invalid.
- 
-How to aggregate:
-
-• Totals (expenditures, number of cases, revenues, etc.): sum the values of the old municipalities.
-• Per-inhabitant measures: obtain the population of each old municipality (for example from SSB Table 11805), compute the weighted average or, equivalently, sum the underlying totals and divide by the sum of the populations. Do not simply average the rates.
-
-Example 1: Lillestrøm. Lillestrøm (knr 3201) did not exist before 2020. It was created by merging Fet (knr 0227), Skedsmo (knr 0230) and Sørum (knr 0226).
-
-• Pre-2020: create one “proto-Lillestrøm” row per year by aggregating the three old municipalities.
-• Post-2020: use the official Lillestrøm data.
-• Give both the proto-rows and the post-2020 rows the same identifier (for example knr 3201).
-
-There is no pre-2020 Lillestrøm series, so aggregation is the only way to obtain a pre-period for the treatment unit.
- 
-Example 2: Asker. Asker already existed before 2020 (old knr 0620). In 2020 it was enlarged by
-merging with Hurum (knr 0628) and Røyken (knr 0627). The post-2020 Asker (knr 3205) therefore
-covers a larger area than the old Asker.
-
-• Pre-2020: aggregate old Asker + Hurum + Røyken into one “proto-Asker” row per year.
-• Post-2020: use the official (enlarged) Asker data.
-• Again, use the same identifier for the proto-rows and the post-2020 rows.
-
-If you used only the old Asker series for the pre-period, you would be comparing a smaller geographical unit before the reform with a larger unit after the reform. That breaks the consistency of the treatment unit.
-
-Summary of the difference.
-
-• Lillestrøm: the post-2020 municipality is entirely new. Aggregation is required to create any pre-period at all.
-• Asker: the post-2020 municipality is an enlargement of an existing one. Aggregation is still required so that the pre-period matches the post-period geographical area.
-
-In both cases the goal is the same: one stable unit, one identifier, a clean before–after comparison.
-
-## Important notes
-
-• You are free to evaluate other policies.
-• Include as many municipalities as possible in both treatment and control groups, because the data are aggregated at the municipality level.
-• For merged municipalities, construct a consistent geographical unit (proto-municipality) for the pre-period so that the treatment unit is comparable over time.
-
-\newpage
-
-```{r}
-# Removing all objects from the environment to avoid any conflicts with previous code
-# Then loading used packages
-rm(list = ls())
-library(tidyverse)
-library(readr)
+```{r load-input}
+#| include: false
 library(dplyr)
-library(openxlsx)
+library(ggplot2)
+local_panel <- "dokumentobjekter/data/panel.csv"
+remote_panel <- paste0("https://raw.githubusercontent.com/",
+                       "DanielFabioG/data/refs/heads/main/panel.csv")
+source_panel <- if (file.exists(local_panel)) local_panel else remote_panel
+panel <- readr::read_csv(source_panel, show_col_types = FALSE)
 ```
 
-```{r}
-# # Data loading
-# df1 <- read_delim(
-#   "dokumentobjekter/data/administrative_costs.csv",
-#   delim = ";",
-#   skip = 1,
-#   locale = locale(encoding = "Windows-1252"),
-#   na = "."
-# )
-# 
-# # Forgot to remove EAK Landet and EAK Landet uten oslo
-# df1 <- dplyr::filter(df1, !region %in% c("EAK Landet", "EAKUO Landet uten Oslo"))
-# 
+```{r municipality-codes}
+#| include: false
+# Stable boundaries, with codes taken from Kartverket and SSB KLASS 131.
+# The first list contains retained units with one code throughout.
+same_code <- scan(text = "
+1101 1106 1111 1112 1114 1119 1120 1121 1122 1127 1134 1135 1144 1145
+1146 1149 1151 1160 1505 1511 1514 1515 1516 1517 1525 1528 1531 1532
+1554 1557 1560 1563 1566 1573 1576 1804 1811 1812 1813 1815 1816 1818
+1820 1822 1824 1825 1826 1827 1828 1832 1833 1834 1835 1836 1837 1838
+1839 1840 1841 1845 1848 1851 1853 1856 1857 1859 1860 1865 1866 1867
+1868 1870 1871 1874
+", what = character(), quiet = TRUE)
+fixed <- data.frame(id = same_code, y2015 = same_code, y2017 = same_code,
+                    y2018 = same_code, y2019 = same_code, y2024 = same_code)
 
-
+# For other retained units, + joins predecessors. A dot repeats the
+# preceding historical code list. In the first and last columns of
+# historical codes, a dot means the stable 2020 id.
+mapped <- read.table(header = TRUE, colClasses = "character", text = "
+id y2015 y2017 y2018 y2019 y2024
+1506 1502+1543+1545 . . . .
+1578 1524+1526 . . . .
+1579 1548+1551 . . . .
+3001 0101 . . . 3101
+3002 0104+0136 . . . 3103
+3003 0105 . . . 3105
+3004 0106 . . . 3107
+3006 0604 . . . 3303
+3007 0605 . . . 3305
+3011 0111 . . . 3110
+3012 0118 . . . 3124
+3013 0119 . . . 3122
+3014 0122+0123+0124+0125+0138 . . . 3118
+3015 0127 . . . 3116
+3016 0128 . . . 3120
+3017 0135 . . . 3112
+3018 0137 . . . 3114
+3019 0211 . . . 3216
+3022 0215 . . . 3214
+3023 0216 . . . 3212
+3024 0219 . . . 3201
+3025 0220+0627+0628 . . . 3203
+3026 0121+0221 . . . 3226
+3027 0228 . . . 3224
+3028 0229 . . . 3220
+3029 0230 . . . 3222
+3031 0233 . . . 3232
+3032 0234 . . . 3230
+3033 0235 . . . 3209
+3035 0237 . . . 3240
+3036 0238 . . . 3238
+3037 0239 . . . 3242
+3038 0612 . . . 3310
+3039 0615 . . . 3320
+3040 0616 . . . 3322
+3041 0617 . . . 3324
+3042 0618 . . . 3326
+3043 0619 . . . 3328
+3044 0620 . . . 3330
+3045 0621 . . . 3332
+3046 0622 . . . 3318
+3047 0623 . . . 3316
+3049 0626 . . . 3312
+3050 0631 . . . 3334
+3051 0632 . . . 3336
+3052 0633 . . . 3338
+3053 0532 . . . 3236
+3054 0533 . . . 3234
+3401 0402 . . . .
+3403 0403 . . . .
+3407 0502 . . . .
+3411 0412 . . . .
+3412 0415 . . . .
+3413 0417 . . . .
+3414 0418 . . . .
+3415 0419 . . . .
+3416 0420 . . . .
+3417 0423 . . . .
+3418 0425 . . . .
+3419 0426 . . . .
+3420 0427 . . . .
+3421 0428 . . . .
+3422 0429 . . . .
+3423 0430 . . . .
+3424 0432 . . . .
+3425 0434 . . . .
+3426 0436 . . . .
+3427 0437 . . . .
+3428 0438 . . . .
+3429 0439 . . . .
+3430 0441 . . . .
+3431 0511 . . . .
+3432 0512 . . . .
+3433 0513 . . . .
+3434 0514 . . . .
+3435 0515 . . . .
+3436 0516 . . . .
+3437 0517 . . . .
+3438 0519 . . . .
+3439 0520 . . . .
+3441 0522 . . . .
+3442 0528 . . . .
+3443 0529 . . . .
+3446 0534 . . . .
+3447 0536 . . . .
+3448 0538 . . . .
+3449 0540 . . . .
+3450 0541 . . . .
+3451 0542 . . . .
+3454 0545 . . . .
+3806 0805 . . . 4001
+3807 0806 . . . 4003
+3812 0811 . . . 4010
+3813 0814 . . . 4012
+3814 0815 . . . 4014
+3815 0817 . . . 4016
+3816 0819 . . . 4018
+3818 0826 . . . 4026
+3819 0827 . . . 4024
+3820 0828 . . . 4022
+3821 0829 . . . 4028
+3822 0830 . . . 4030
+3823 0831 . . . 4032
+3824 0833 . . . 4034
+3825 0834 . . . 4036
+4202 0904 . . . .
+4203 0906 . . . .
+4204 1001+1017+1018 . . . .
+4205 1002+1021+1029 . . . .
+4206 1003 . . . .
+4207 1004 . . . .
+4211 0911 . . . .
+4212 0912 . . . .
+4214 0919 . . . .
+4215 0926 . . . .
+4217 0929 . . . .
+4218 0935 . . . .
+4220 0938 . . . .
+4221 0940 . . . .
+4222 0941 . . . .
+4223 1014 . . . .
+4224 1026 . . . .
+4225 1027+1032 . . . .
+4226 1034 . . . .
+4227 1037 . . . .
+4228 1046 . . . .
+4601 1201 . . . .
+4611 1211 . . . .
+4612 1216 . . . .
+4613 1219 . . . .
+4614 1221 . . . .
+4615 1222 . . . .
+4616 1223 . . . .
+4617 1224 . . . .
+4620 1233 . . . .
+4622 1238 . . . .
+4623 1242 . . . .
+4624 1241+1243 . . . .
+4625 1244 . . . .
+4626 1245+1246+1259 . . . .
+4627 1247 . . . .
+4628 1251 . . . .
+4629 1252 . . . .
+4630 1253 . . . .
+4631 1256+1260+1263 . . . .
+4632 1264 . . . .
+4633 1265 . . . .
+4634 1266 . . . .
+4635 1411 . . . .
+4636 1412 . . . .
+4637 1413 . . . .
+4639 1417 . . . .
+4641 1421 . . . .
+4642 1422 . . . .
+4643 1424 . . . .
+4644 1426 . . . .
+4645 1428 . . . .
+4646 1429 . . . .
+4647 1430+1431+1432+1433 . . . .
+4648 1438 . . . .
+4650 1445 . . . .
+5001 1601+1662 . 5001+5030 . .
+5014 1620 . 5014 . .
+5020 1633 . 5020 . .
+5021 1634 . 5021 . .
+5022 1635 . 5022 . .
+5025 1640 . 5025 . .
+5026 1644 . 5026 . .
+5027 1648 . 5027 . .
+5028 1653 . 5028 . .
+5029 1657 . 5029 . .
+5031 1663 . 5031 . .
+5032 1664 . 5032 . .
+5033 1665 . 5033 . .
+5034 1711 . 5034 . .
+5035 1714 . 5035 . .
+5036 1717 . 5036 . .
+5037 1719 . 5037 . .
+5038 1721 . 5038 . .
+5041 1736 . 5041 . .
+5042 1738 . 5042 . .
+5043 1739 . 5043 . .
+5044 1740 . 5044 . .
+5045 1742 . 5045 . .
+5046 1743 . 5046 . .
+5047 1744 . 5047 . .
+5049 1749 . 5049 . .
+5052 1755 . 5052 . .
+5053 1756 . 5053 . .
+5057 1621+1627 . 5015+5017 . .
+5058 1630+1632 . 5018+5019 . .
+5061 1567 . . 5061 .
+5401 1902 . . . 5501
+5402 1903 . . . 5503
+5403 2012 . . . 5601
+5404 2002 . . . 5634
+5405 2003 . . . 5607
+5406 2004+2017 . . . 5603
+5411 1911 . . . 5510
+5412 1852+1913 . . . 5512
+5413 1917 . . . 5514
+5414 1919 . . . 5516
+5415 1920 . . . 5518
+5416 1922 . . . 5520
+5417 1923 . . . 5522
+5418 1924 . . . 5524
+5419 1925 . . . 5526
+5420 1926 . . . 5528
+5421 1927+1928+1929+1931 . . . 5530
+5422 1933 . . . 5532
+5423 1936 . . . 5534
+5424 1938 . . . 5536
+5425 1939 . . . 5538
+5426 1940 . . . 5540
+5427 1941 . . . 5542
+5428 1942 . . . 5544
+5429 1943 . . . 5546
+5430 2011 . . . 5612
+5432 2014 . . . 5614
+5433 2015 . . . 5616
+5434 2018 . . . 5618
+5435 2019 . . . 5620
+5436 2020 . . . 5622
+5437 2021 . . . 5610
+5438 2022 . . . 5624
+5439 2023 . . . 5626
+5440 2024 . . . 5630
+5441 2025 . . . 5628
+5442 2027 . . . 5636
+5443 2028 . . . 5632
+5444 2030 . . . 5605
+")
+defaults <- c(y2015 = "id", y2017 = "y2015", y2018 = "y2017",
+              y2019 = "y2018", y2024 = "id")
+for (field in names(defaults)) {
+  repeat_code <- mapped[[field]] == "."
+  mapped[[field]][repeat_code] <- mapped[[defaults[[field]]]][repeat_code]
+  mapped[[field]] <- chartr("+", " ", mapped[[field]])
+}
+sample_units <- bind_rows(fixed, mapped)
+stopifnot(nrow(sample_units) == 305L, !anyDuplicated(sample_units$id))
 ```
 
-
-
-```{r}
-# # Loading the dataset
-# df2 <- read_delim(
-#   "dokumentobjekter/data/personer_kommuner.csv",
-#   delim = ";",
-#   skip = 1,
-#   locale = locale(encoding = "Windows-1252"),
-#   na = "."
-# )
-# 
-# panel <- left_join(df1, df2, by = "region", relationship = "one-to-one")
-# 
-# # save the pre aggregated file as csv
-# write.csv(panel, "dokumentobjekter/data/panel.csv", row.names = FALSE)
-
-
-
-# This code just puts the regions in the right order, and then saves it as a csv file. The csv file is then used in the analysis.
-# the files were local so to not have any troubles reproducing the analysis the completed panel file is downloaded from github.
-
-
-# loading the pre aggregated file
-panel <- read_csv("https://raw.githubusercontent.com/DanielFabioG/data/refs/heads/main/panel.csv")
-
-# crosswalk for municipality mergers and splits.
-# This code is not written by me, Astra 6.2 wrote it to fix all the municipality mergers and splits.
-crosswalk <- read.delim(text = "
-id	y2015	y2017	y2018	y2019	y2024	status
-0301	0301	0301	0301	0301	0301	Oslo accounting issue
-1101	1101	1101	1101	1101	1101	include
-1103	1103 1141 1142	1103 1141 1142	1103 1141 1142	1103 1141 1142	1103	2020 partial transfer
-1106	1106	1106	1106	1106	1106	include
-1108	1102 1129	1102 1129	1102 1129	1102 1129	1108	2017 Sola-Sandnes boundary change, 2020 partial transfer
-1111	1111	1111	1111	1111	1111	include
-1112	1112	1112	1112	1112	1112	include
-1114	1114	1114	1114	1114	1114	include
-1119	1119	1119	1119	1119	1119	include
-1120	1120	1120	1120	1120	1120	include
-1121	1121	1121	1121	1121	1121	include
-1122	1122	1122	1122	1122	1122	include
-1124	1124	1124	1124	1124	1124	2017 Sola-Sandnes boundary change
-1127	1127	1127	1127	1127	1127	include
-1130	1130	1130	1130	1130	1130	2020 partial transfer
-1133	1133	1133	1133	1133	1133	2020 partial transfer
-1134	1134	1134	1134	1134	1134	include
-1135	1135	1135	1135	1135	1135	include
-1144	1144	1144	1144	1144	1144	include
-1145	1145	1145	1145	1145	1145	include
-1146	1146	1146	1146	1146	1146	include
-1149	1149	1149	1149	1149	1149	include
-1151	1151	1151	1151	1151	1151	include
-1160	1160	1160	1160	1160	1160	include
-1505	1505	1505	1505	1505	1505	include
-1506	1502 1543 1545	1502 1543 1545	1502 1543 1545	1502 1543 1545	1506	include
-1507	1504 1523 1529 1534 1546	1504 1523 1529 1534 1546	1504 1523 1529 1534 1546	1504 1523 1529 1534 1546	1508 1580	Ålesund-Haram split in 2024, 2020 partial transfer
-1511	1511	1511	1511	1511	1511	include
-1514	1514	1514	1514	1514	1514	include
-1515	1515	1515	1515	1515	1515	include
-1516	1516	1516	1516	1516	1516	include
-1517	1517	1517	1517	1517	1517	include
-1520	1520	1520	1520	1520	1520	2020 partial transfer
-1525	1525	1525	1525	1525	1525	include
-1528	1528	1528	1528	1528	1528	include
-1531	1531	1531	1531	1531	1531	include
-1532	1532	1532	1532	1532	1532	include
-1535	1535	1535	1535	1535	1535	2021 partial transfer
-1539	1539	1539	1539	1539	1539	2021 partial transfer
-1547	1547	1547	1547	1547	1547	2020 partial transfer
-1554	1554	1554	1554	1554	1554	include
-1557	1557	1557	1557	1557	1557	include
-1560	1560	1560	1560	1560	1560	include
-1563	1563	1563	1563	1563	1563	include
-1566	1566	1566	1566	1566	1566	include
-1573	1573	1573	1573	1573	1573	include
-1576	1576	1576	1576	1576	1576	include
-1577	1444 1519	1444 1519	1444 1519	1444 1519	1577	2019 partial transfer, 2020 partial transfer
-1578	1524 1526	1524 1526	1524 1526	1524 1526	1578	include
-1579	1548 1551	1548 1551	1548 1551	1548 1551	1579	include
-1804	1804	1804	1804	1804	1804	include
-1806	1805 1850 1854	1805 1850 1854	1805 1850 1854	1805 1850 1854	1806	split predecessor in 2020
-1811	1811	1811	1811	1811	1811	include
-1812	1812	1812	1812	1812	1812	include
-1813	1813	1813	1813	1813	1813	include
-1815	1815	1815	1815	1815	1815	include
-1816	1816	1816	1816	1816	1816	include
-1818	1818	1818	1818	1818	1818	include
-1820	1820	1820	1820	1820	1820	include
-1822	1822	1822	1822	1822	1822	include
-1824	1824	1824	1824	1824	1824	include
-1825	1825	1825	1825	1825	1825	include
-1826	1826	1826	1826	1826	1826	include
-1827	1827	1827	1827	1827	1827	include
-1828	1828	1828	1828	1828	1828	include
-1832	1832	1832	1832	1832	1832	include
-1833	1833	1833	1833	1833	1833	include
-1834	1834	1834	1834	1834	1834	include
-1835	1835	1835	1835	1835	1835	include
-1836	1836	1836	1836	1836	1836	include
-1837	1837	1837	1837	1837	1837	include
-1838	1838	1838	1838	1838	1838	include
-1839	1839	1839	1839	1839	1839	include
-1840	1840	1840	1840	1840	1840	include
-1841	1841	1841	1841	1841	1841	include
-1845	1845	1845	1845	1845	1845	include
-1848	1848	1848	1848	1848	1848	include
-1851	1851	1851	1851	1851	1851	include
-1853	1853	1853	1853	1853	1853	include
-1856	1856	1856	1856	1856	1856	include
-1857	1857	1857	1857	1857	1857	include
-1859	1859	1859	1859	1859	1859	include
-1860	1860	1860	1860	1860	1860	include
-1865	1865	1865	1865	1865	1865	include
-1866	1866	1866	1866	1866	1866	include
-1867	1867	1867	1867	1867	1867	include
-1868	1868	1868	1868	1868	1868	include
-1870	1870	1870	1870	1870	1870	include
-1871	1871	1871	1871	1871	1871	include
-1874	1874	1874	1874	1874	1874	include
-1875	1849 1850	1849 1850	1849 1850	1849 1850	1875	split predecessor in 2020
-3001	0101	0101	0101	0101	3101	include
-3002	0104 0136	0104 0136	0104 0136	0104 0136	3103	include
-3003	0105	0105	0105	0105	3105	include
-3004	0106	0106	0106	0106	3107	include
-3005	0602 0625 0711	0602 0625 0711	0602 0625 0711	0602 0625 0711	3301	2022 partial transfer
-3006	0604	0604	0604	0604	3303	include
-3007	0605	0605	0605	0605	3305	include
-3011	0111	0111	0111	0111	3110	include
-3012	0118	0118	0118	0118	3124	include
-3013	0119	0119	0119	0119	3122	include
-3014	0122 0123 0124 0125 0138	0122 0123 0124 0125 0138	0122 0123 0124 0125 0138	0122 0123 0124 0125 0138	3118	include
-3015	0127	0127	0127	0127	3116	include
-3016	0128	0128	0128	0128	3120	include
-3017	0135	0135	0135	0135	3112	include
-3018	0137	0137	0137	0137	3114	include
-3019	0211	0211	0211	0211	3216	include
-3020	0213 0217	0213 0217	0213 0217	0213 0217	3207	2020 partial transfer
-3021	0214	0214	0214	0214	3218	2020 partial transfer
-3022	0215	0215	0215	0215	3214	include
-3023	0216	0216	0216	0216	3212	include
-3024	0219	0219	0219	0219	3201	include
-3025	0220 0627 0628	0220 0627 0628	0220 0627 0628	0220 0627 0628	3203	include
-3026	0121 0221	0121 0221	0121 0221	0121 0221	3226	include
-3027	0228	0228	0228	0228	3224	include
-3028	0229	0229	0229	0229	3220	include
-3029	0230	0230	0230	0230	3222	include
-3030	0226 0227 0231	0226 0227 0231	0226 0227 0231	0226 0227 0231	3205	2020 partial transfer
-3031	0233	0233	0233	0233	3232	include
-3032	0234	0234	0234	0234	3230	include
-3033	0235	0235	0235	0235	3209	include
-3034	0236	0236	0236	0236	3228	2020 partial transfer
-3035	0237	0237	0237	0237	3240	include
-3036	0238	0238	0238	0238	3238	include
-3037	0239	0239	0239	0239	3242	include
-3038	0612	0612	0612	0612	3310	include
-3039	0615	0615	0615	0615	3320	include
-3040	0616	0616	0616	0616	3322	include
-3041	0617	0617	0617	0617	3324	include
-3042	0618	0618	0618	0618	3326	include
-3043	0619	0619	0619	0619	3328	include
-3044	0620	0620	0620	0620	3330	include
-3045	0621	0621	0621	0621	3332	include
-3046	0622	0622	0622	0622	3318	include
-3047	0623	0623	0623	0623	3316	include
-3048	0624	0624	0624	0624	3314	2022 partial transfer
-3049	0626	0626	0626	0626	3312	include
-3050	0631	0631	0631	0631	3334	include
-3051	0632	0632	0632	0632	3336	include
-3052	0633	0633	0633	0633	3338	include
-3053	0532	0532	0532	0532	3236	include
-3054	0533	0533	0533	0533	3234	include
-3401	0402	0402	0402	0402	3401	include
-3403	0403	0403	0403	0403	3403	include
-3405	0501	0501	0501	0501	3405	2022 partial transfer
-3407	0502	0502	0502	0502	3407	include
-3411	0412	0412	0412	0412	3411	include
-3412	0415	0415	0415	0415	3412	include
-3413	0417	0417	0417	0417	3413	include
-3414	0418	0418	0418	0418	3414	include
-3415	0419	0419	0419	0419	3415	include
-3416	0420	0420	0420	0420	3416	include
-3417	0423	0423	0423	0423	3417	include
-3418	0425	0425	0425	0425	3418	include
-3419	0426	0426	0426	0426	3419	include
-3420	0427	0427	0427	0427	3420	include
-3421	0428	0428	0428	0428	3421	include
-3422	0429	0429	0429	0429	3422	include
-3423	0430	0430	0430	0430	3423	include
-3424	0432	0432	0432	0432	3424	include
-3425	0434	0434	0434	0434	3425	include
-3426	0436	0436	0436	0436	3426	include
-3427	0437	0437	0437	0437	3427	include
-3428	0438	0438	0438	0438	3428	include
-3429	0439	0439	0439	0439	3429	include
-3430	0441	0441	0441	0441	3430	include
-3431	0511	0511	0511	0511	3431	include
-3432	0512	0512	0512	0512	3432	include
-3433	0513	0513	0513	0513	3433	include
-3434	0514	0514	0514	0514	3434	include
-3435	0515	0515	0515	0515	3435	include
-3436	0516	0516	0516	0516	3436	include
-3437	0517	0517	0517	0517	3437	include
-3438	0519	0519	0519	0519	3438	include
-3439	0520	0520	0520	0520	3439	include
-3440	0521	0521	0521	0521	3440	2022 partial transfer
-3441	0522	0522	0522	0522	3441	include
-3442	0528	0528	0528	0528	3442	include
-3443	0529	0529	0529	0529	3443	include
-3446	0534	0534	0534	0534	3446	include
-3447	0536	0536	0536	0536	3447	include
-3448	0538	0538	0538	0538	3448	include
-3449	0540	0540	0540	0540	3449	include
-3450	0541	0541	0541	0541	3450	include
-3451	0542	0542	0542	0542	3451	include
-3452	0543	0543	0543	0543	3452	2021 partial transfer
-3453	0544	0544	0544	0544	3453	2021 partial transfer
-3454	0545	0545	0545	0545	3454	include
-3801	0701	0701	0701	0701	3901	2020 partial transfer
-3802	0702 0713 0714	0702 0713 0714	0713 0715	0713 0715	3903	pre-2020 merger or split, 2020 partial transfer
-3803	0704 0716 0720	0704 0716	0704 0716	0704 0716	3905	pre-2020 merger or split, 2020 partial transfer
-3804	0706 0719 0720	0710	0710	0710	3907	pre-2020 merger or split
-3805	0709 0728	0709 0728	0712	0712	3909	pre-2020 merger or split
-3806	0805	0805	0805	0805	4001	include
-3807	0806	0806	0806	0806	4003	include
-3808	0807	0807	0807	0807	4005	2020 partial transfer
-3811	0722 0723	0722 0723	0729	0729	3911	pre-2020 merger or split
-3812	0811	0811	0811	0811	4010	include
-3813	0814	0814	0814	0814	4012	include
-3814	0815	0815	0815	0815	4014	include
-3815	0817	0817	0817	0817	4016	include
-3816	0819	0819	0819	0819	4018	include
-3817	0821 0822	0821 0822	0821 0822	0821 0822	4020	2020 partial transfer
-3818	0826	0826	0826	0826	4026	include
-3819	0827	0827	0827	0827	4024	include
-3820	0828	0828	0828	0828	4022	include
-3821	0829	0829	0829	0829	4028	include
-3822	0830	0830	0830	0830	4030	include
-3823	0831	0831	0831	0831	4032	include
-3824	0833	0833	0833	0833	4034	include
-3825	0834	0834	0834	0834	4036	include
-4201	0901	0901	0901	0901	4201	2025 partial transfer
-4202	0904	0904	0904	0904	4202	include
-4203	0906	0906	0906	0906	4203	include
-4204	1001 1017 1018	1001 1017 1018	1001 1017 1018	1001 1017 1018	4204	include
-4205	1002 1021 1029	1002 1021 1029	1002 1021 1029	1002 1021 1029	4205	include
-4206	1003	1003	1003	1003	4206	include
-4207	1004	1004	1004	1004	4207	include
-4211	0911	0911	0911	0911	4211	include
-4212	0912	0912	0912	0912	4212	include
-4213	0914	0914	0914	0914	4213	2025 partial transfer
-4214	0919	0919	0919	0919	4214	include
-4215	0926	0926	0926	0926	4215	include
-4216	0928	0928	0928	0928	4216	2019 partial transfer
-4217	0929	0929	0929	0929	4217	include
-4218	0935	0935	0935	0935	4218	include
-4219	0937	0937	0937	0937	4219	2019 partial transfer
-4220	0938	0938	0938	0938	4220	include
-4221	0940	0940	0940	0940	4221	include
-4222	0941	0941	0941	0941	4222	include
-4223	1014	1014	1014	1014	4223	include
-4224	1026	1026	1026	1026	4224	include
-4225	1027 1032	1027 1032	1027 1032	1027 1032	4225	include
-4226	1034	1034	1034	1034	4226	include
-4227	1037	1037	1037	1037	4227	include
-4228	1046	1046	1046	1046	4228	include
-4601	1201	1201	1201	1201	4601	include
-4602	1401 1439	1401 1439	1401 1439	1401 1439	4602	2020 partial transfer
-4611	1211	1211	1211	1211	4611	include
-4612	1216	1216	1216	1216	4612	include
-4613	1219	1219	1219	1219	4613	include
-4614	1221	1221	1221	1221	4614	include
-4615	1222	1222	1222	1222	4615	include
-4616	1223	1223	1223	1223	4616	include
-4617	1224	1224	1224	1224	4617	include
-4618	1227 1228 1231	1227 1228 1231	1227 1228 1231	1227 1228 1231	4618	2020 partial transfer, 2022 partial transfer
-4619	1232	1232	1232	1232	4619	2022 partial transfer
-4620	1233	1233	1233	1233	4620	include
-4621	1234 1235	1234 1235	1234 1235	1234 1235	4621	2020 partial transfer
-4622	1238	1238	1238	1238	4622	include
-4623	1242	1242	1242	1242	4623	include
-4624	1241 1243	1241 1243	1241 1243	1241 1243	4624	include
-4625	1244	1244	1244	1244	4625	include
-4626	1245 1246 1259	1245 1246 1259	1245 1246 1259	1245 1246 1259	4626	include
-4627	1247	1247	1247	1247	4627	include
-4628	1251	1251	1251	1251	4628	include
-4629	1252	1252	1252	1252	4629	include
-4630	1253	1253	1253	1253	4630	include
-4631	1256 1260 1263	1256 1260 1263	1256 1260 1263	1256 1260 1263	4631	include
-4632	1264	1264	1264	1264	4632	include
-4633	1265	1265	1265	1265	4633	include
-4634	1266	1266	1266	1266	4634	include
-4635	1411	1411	1411	1411	4635	include
-4636	1412	1412	1412	1412	4636	include
-4637	1413	1413	1413	1413	4637	include
-4638	1416	1416	1416	1416	4638	2020 partial transfer
-4639	1417	1417	1417	1417	4639	include
-4640	1418 1419 1420	1418 1419 1420	1418 1419 1420	1418 1419 1420	4640	2020 partial transfer
-4641	1421	1421	1421	1421	4641	include
-4642	1422	1422	1422	1422	4642	include
-4643	1424	1424	1424	1424	4643	include
-4644	1426	1426	1426	1426	4644	include
-4645	1428	1428	1428	1428	4645	include
-4646	1429	1429	1429	1429	4646	include
-4647	1430 1431 1432 1433	1430 1431 1432 1433	1430 1431 1432 1433	1430 1431 1432 1433	4647	include
-4648	1438	1438	1438	1438	4648	include
-4649	1441 1443	1441 1443	1441 1443	1441 1443	4649	2020 partial transfer
-4650	1445	1445	1445	1445	4650	include
-4651	1449	1449	1449	1449	4651	2019 partial transfer
-5001	1601 1662	1601 1662	5001 5030	5001 5030	5001	include
-5006	1702 1724	1702 1724	5004 5039	5004 5039	5006	2020 partial transfer
-5007	1703 1725 1748	1703 1725 1748	5005 5040 5048	5005 5040 5048	5007	2020 partial transfer
-5014	1620	1620	5014	5014	5014	include
-5020	1633	1633	5020	5020	5020	include
-5021	1634	1634	5021	5021	5021	include
-5022	1635	1635	5022	5022	5022	include
-5025	1640	1640	5025	5025	5025	include
-5026	1644	1644	5026	5026	5026	include
-5027	1648	1648	5027	5027	5027	include
-5028	1653	1653	5028	5028	5028	include
-5029	1657	1657	5029	5029	5029	include
-5031	1663	1663	5031	5031	5031	include
-5032	1664	1664	5032	5032	5032	include
-5033	1665	1665	5033	5033	5033	include
-5034	1711	1711	5034	5034	5034	include
-5035	1714	1714	5035	5035	5035	include
-5036	1717	1717	5036	5036	5036	include
-5037	1719	1719	5037	5037	5037	include
-5038	1721	1721	5038	5038	5038	include
-5041	1736	1736	5041	5041	5041	include
-5042	1738	1738	5042	5042	5042	include
-5043	1739	1739	5043	5043	5043	include
-5044	1740	1740	5044	5044	5044	include
-5045	1742	1742	5045	5045	5045	include
-5046	1743	1743	5046	5046	5046	include
-5047	1744	1744	5047	5047	5047	include
-5049	1749	1749	5049	5049	5049	include
-5052	1755	1755	5052	5052	5052	include
-5053	1756	1756	5053	5053	5053	include
-5054	1624 1718	1624 1718	5054	5054	5054	pre-2020 merger or split, 2020 partial transfer
-5055	1571 1612 1613	1571 1612 1613	1571 5011 5012	1571 5011 5012	5055	split predecessor in 2020
-5056	1613 1617	1613 1617	5012 5013	5012 5013	5056	split predecessor in 2020
-5057	1621 1627	1621 1627	5015 5017	5015 5017	5057	include
-5058	1630 1632	1630 1632	5018 5019	5018 5019	5058	include
-5059	1613 1622 1636 1638	1613 1622 1636 1638	5012 5016 5023 5024	5012 5016 5023 5024	5059	split predecessor in 2020
-5060	1750 1751	1750 1751	5050 5051	5050 5051	5060	2020 partial transfer
-5061	1567	1567	1567	5061	5061	include
-5401	1902	1902	1902	1902	5501	include
-5402	1903	1903	1903	1903	5503	include
-5403	2012	2012	2012	2012	5601	include
-5404	2002	2002	2002	2002	5634	include
-5405	2003	2003	2003	2003	5607	include
-5406	2004 2017	2004 2017	2004 2017	2004 2017	5603	include
-5411	1911	1911	1911	1911	5510	include
-5412	1852 1913	1852 1913	1852 1913	1852 1913	5512	include
-5413	1917	1917	1917	1917	5514	include
-5414	1919	1919	1919	1919	5516	include
-5415	1920	1920	1920	1920	5518	include
-5416	1922	1922	1922	1922	5520	include
-5417	1923	1923	1923	1923	5522	include
-5418	1924	1924	1924	1924	5524	include
-5419	1925	1925	1925	1925	5526	include
-5420	1926	1926	1926	1926	5528	include
-5421	1927 1928 1929 1931	1927 1928 1929 1931	1927 1928 1929 1931	1927 1928 1929 1931	5530	include
-5422	1933	1933	1933	1933	5532	include
-5423	1936	1936	1936	1936	5534	include
-5424	1938	1938	1938	1938	5536	include
-5425	1939	1939	1939	1939	5538	include
-5426	1940	1940	1940	1940	5540	include
-5427	1941	1941	1941	1941	5542	include
-5428	1942	1942	1942	1942	5544	include
-5429	1943	1943	1943	1943	5546	include
-5430	2011	2011	2011	2011	5612	include
-5432	2014	2014	2014	2014	5614	include
-5433	2015	2015	2015	2015	5616	include
-5434	2018	2018	2018	2018	5618	include
-5435	2019	2019	2019	2019	5620	include
-5436	2020	2020	2020	2020	5622	include
-5437	2021	2021	2021	2021	5610	include
-5438	2022	2022	2022	2022	5624	include
-5439	2023	2023	2023	2023	5626	include
-5440	2024	2024	2024	2024	5630	include
-5441	2025	2025	2025	2025	5628	include
-5442	2027	2027	2027	2027	5636	include
-5443	2028	2028	2028	2028	5632	include
-5444	2030	2030	2030	2030	5605	include
-", colClasses = "character", strip.white = TRUE)
-
-
-```
-
-
-
-```{r}
-# Code written by ChatGPT 6.2 to complete the dataset for the diff-in-diff.
-# Frozen official code lists (one row per 2020 municipality). Each period lists
-# the raw codes to sum. The 2020 code is also the stable analytical ID.
-# Kartverket, mapping 2019 -> 2020:
-# https://kartverket.no/til-lands/kommunereform/tekniske-endringer-ved-sammenslaing-og-grensejustering/komendr2020
-# Kartverket, mapping 2023 -> 2024:
-# https://kartverket.no/til-lands/fakta-om-norge/norske-fylke-og-kommunar
-# SSB KLASS 131, earlier changes (including Trøndelag renumbering):
-# https://data.ssb.no/api/klass/v1/classifications/131/changes.json?from=2015-01-01&to=2026-01-01
-# Boundary exceptions:
-# https://www.ssb.no/metadata/alle-endringer-i-de-regionale-inndelingene
-# Multiple outgoing destinations cannot be apportioned using municipal totals.
-
-# Assign treatment from multiple 2019 predecessors. Sample rules are applied
-# before aggregation. Code-only changes contribute one predecessor.
-sample_units <- subset(crosswalk, status == "include")
+```{r build-panel}
+#| include: false
 sample_units$treated <- as.integer(grepl(" ", sample_units$y2019))
 raw_codes <- substr(panel$region, 1, 4)
 stopifnot(!anyDuplicated(raw_codes), all(grepl("^[0-9]{4}$", raw_codes)))
@@ -576,7 +356,8 @@ aggregate_year <- function(year) {
   members <- strsplit(sample_units[[period]], " ", fixed = TRUE)
   codes <- unlist(members, use.names = FALSE)
   stopifnot(!anyDuplicated(codes), all(codes %in% raw_codes))
-  cost_col <- paste("Beløp (1000 kr) 120 Administrasjon Brutto driftsutgifter på funksjon/tjenesteområde", year)
+  cost_col <- paste("Beløp (1000 kr) 120 Administrasjon",
+                    "Brutto driftsutgifter på funksjon/tjenesteområde", year)
   pop_col <- paste("Personer (antall)", year, "I alt")
   stopifnot(all(c(cost_col, pop_col) %in% names(panel)))
   rows <- lapply(members, match, table = raw_codes)
@@ -598,75 +379,82 @@ aggregate_year <- function(year) {
 }
 
 panel_all <- do.call(rbind, lapply(2015:2025, aggregate_year))
-missing_years <- subset(panel_all, is.na(admin_1000nok) | is.na(population))
 # Keep all usable municipality-years. Missing values never become zero.
 df_did <- subset(panel_all, !is.na(admin_nok_pc))
 df_did <- df_did[order(df_did$id, df_did$year), ]
 row.names(df_did) <- NULL
 stopifnot(!anyDuplicated(df_did[c("id", "year")]))
-excluded <- subset(crosswalk, status != "include")
-#print(with(df_did, table(year, treated)))
 
-
-# Optional: estimates in current NOK per inhabitant, clustered by stable unit.
-# fixest::feols(admin_nok_pc ~ did | id + year, data = df_did, vcov = ~id)
-
-# save the panel data as excel file
-wb <- createWorkbook()
-addWorksheet(wb, "panel_data")
-writeData(wb, sheet = "panel_data", df_did)
-saveWorkbook(wb, "dokumentobjekter/data/final_data.xlsx", overwrite = TRUE)
-
+stopifnot(nrow(df_did) == 3352L, sum(sample_units$treated) == 20L)
+data_dir <- "dokumentobjekter/data"
+dir.create(data_dir, recursive = TRUE, showWarnings = FALSE)
+openxlsx::write.xlsx(list(panel_data = df_did),
+                     file.path(data_dir, "final_data.xlsx"), overwrite = TRUE)
 ```
 
+```{r estimate-models}
+#| include: false
+fmt <- function(x) formatC(x, format = "f", digits = 0, big.mark = ",")
+base_pop <- filter(df_did, year == 2015)
+limits <- range(base_pop$population[base_pop$treated == 1])
+size_ids <- filter(base_pop, between(population, limits[1], limits[2]))$id
+restricted <- filter(df_did, id %in% size_ids)
+
+estimate_did <- function(data) {
+  fixest::feols(admin_nok_pc ~ did | id + year, data = data, vcov = ~id)
+}
+estimate_slope <- function(data) {
+  pre <- mutate(filter(data, year < 2020), trend = treated * (year - 2015))
+  fixest::feols(admin_nok_pc ~ trend | id + year, data = pre, vcov = ~id)
+}
+model <- estimate_did(df_did)
+model_no_2019 <- estimate_did(filter(df_did, year != 2019))
+model_size <- estimate_did(restricted)
+slope_all <- estimate_slope(df_did)
+slope_size <- estimate_slope(restricted)
+```
 
 # Introduction
 
-The Norwegian municipal reform of 2020 reduced the number of municipalities from 422 to 356. The reform was motivated by the idea that larger municipalities can provide better services at lower cost. One potential source of savings is administrative spending, which may be reduced when several municipalities share management teams, payroll systems and other functions. This paper examines whether administrative spending per resident declined in merged municipalities relative to unchanged municipalities after the reform.
+When Moss and Rygge merged in January 2020, the new municipality inherited two administrations and the population both had served. Combining the accounts alone could produce no saving. A saving would require some change in how the work was done, such as replacing two payroll arrangements with one. Yet the first financial consequence of combining them might be the expense of moving staff and records to a common system. For a council considering a merger, the relevant budget question concerns both the size of any saving and when it might appear.
 
-## Background
+Norway's municipal reform began in 2014. Its objectives included financially sustainable municipalities, local capacity and the quality of services. Central government offered merger subsidies to help finance the transition [@askim2025local]. A grant could cover part of the cost to the local budget while the expenditure itself would still appear in the gross spending measure used here. The main wave of mergers took effect on 1 January 2020, when the number of municipalities fell from 422 to 356. Decisions and preparations preceded that date by several years [@askim2025local]. This timing gives us a common implementation year across the mergers studied here, but makes the last pre-merger budgets particularly important to the comparison.
 
-Lets open with a concrete budget question. When several municipalities merge, they may be able to reduce administrative costs by sharing resources and functions. However, the transition period can be costly as the merged entity needs to integrate the systems and staff of the predecessor municipalities. What is the net effect on administrative spending per resident? The cost per resident is a relevant measure because it accounts for the size of the population served by the municipality. A reduction in administrative spending per resident could indicate that the merged municipality is operating more efficiently, while an increase could suggest that the transition costs are outweighing any potential savings.
-
-## Research question
-
-How did gross administrative spending per resident change in Norwegian municipalities that merged on 1 January 2020, relative to municipalities with stable boundaries? Annual data from 2015 to 2025 allow us to examine the timing of any change in administrative spending per resident before and after the reform. This can allow us to assess whether the reform had a lasting effect on administrative efficiency or whether any observed changes were temporary.
-
-## Policy Context
-
-Separate from the 2020 reform, the Norwegian government has been encouraging municipalities to merge since 2014. The reform was part of a broader effort to improve the efficiency and quality of local government services. The government provided financial incentives for municipalities to merge, including temporary grants to support the transition process according to @Utdanningsforbundet. Understanding the impact of these mergers on administrative spending per resident can inform future policy decisions regarding municipal consolidation.
+We ask how gross administrative spending per resident changed in the municipalities that merged in 2020 relative to municipalities with stable boundaries. We follow the same geographical areas from 2015 through 2025. Six years of post-merger accounts allow us to distinguish an initial fall in spending from a gap that widens because spending elsewhere continues to rise. These patterns have different implications for what a council could reasonably expect to see in its own accounts.
 
 # Literature review
 
-## Danish evidence
+The 2007 Danish municipal reform provides a close comparison. @blom2014size find that amalgamation reduced administrative costs per inhabitant. Their outcome captures a function for which several councils may previously have paid separately. Extending the analysis to other spending categories, @blom2016jurisdiction find that savings in some areas were offset by increases elsewhere. An administrative saving can therefore coexist with an unchanged total budget. For example, a municipality could use the resources released from administration to increase spending on services. Our choice of outcome follows the first Danish study, while the second limits the budgetary conclusion we can draw from it.
 
-Municipal mergers may reduce the cost of administration because several municipalities can share management team, payroll system and other functions before maintained separately. Evidence from Denmark support this argument. Using the Danish reform in 2007 to compare merged and unchanged municipalities, @blom2014size found that mergers lowered adimistrative costs per inhabitant. Later @blom2016jurisdiction did a broader analysis of the same reform, and found that savings in some spending areas were offset by increases elsewhere. Together, these findings explain why the choice of outcome can matter. A municipality could spend less on administration and redirect those resources to local services while its total expenditure remains unchanged. Our study focuses on administrative spending per resident, which is a relevant measure of efficiency in the context of municipal mergers.
+The Norwegian evidence suggests a further reason to look at the years surrounding implementation. @askim2025local examine whether municipalities committed additional resources before their budgets were combined. Smaller merger partners showed particularly strong pre-merger overspending on current expenditure. Their evidence concerns wider spending categories than the administrative accounts examined here. It nevertheless gives a specific reason to question whether expenditure immediately before the merger represents an ordinary year for the future partners. A comparison beginning in 2019 could pick up the reversal of unusually high spending as well as any economies achieved by combining administrations.
 
-## Norwegian context
+# Theoretical framework
 
-In Norway, an important question is when spending begins to change. @askim2025local found that municipalities increased their spending in current expenditure. Their study examines broader spending categories, leaving open whether the same pattern occured in the administration. This could matter for our analysis because an unusually high level of spending in 2019 could make a post-2020 reduction appear larger than it really is. We therefore examine the timing of any change in administrative spending per resident.
+## Fixed costs and the scope for savings
 
-The Danish studies provide a benchmark for administrative savings, while the Norwegian evidence raises a question about spending before implementation. We bring these questions together by following the 2020 Norwegian merger cohort through 2025.
+Consider a municipality serving $N$ residents with annual administrative expenditure $F+vN$. Here $F$ is the cost of maintaining one administrative organisation and $v$ is the cost of work that rises in proportion to population. Average expenditure is $F/N+v$. Suppose two municipalities with populations $N_1$ and $N_2$ each incur the same fixed cost. Across their combined territory they initially spend $2F/(N_1+N_2)+v$ per resident. If one administration can serve both territories at the same variable cost, the potential annual saving per resident is $F/(N_1+N_2)$. This simple example expresses the scale argument examined by @blom2014size and clarifies why a merger on paper cannot by itself generate the predicted saving.
 
-# Brief theory framework
+The size of the saving depends on which tasks can actually be combined. One financial director may oversee the consolidated accounts, while the staff processing invoices still face roughly the same volume of work. A geographically dispersed municipality might also retain local offices or incur extra coordination costs. In the example, either retaining part of the second fixed cost or increasing the cost per transaction reduces the gain. A municipality could even spend the same amount while acquiring specialist capacity that its predecessors could not afford individually. Expenditure alone therefore gives an incomplete measure of what the administration produces.
 
-The scope for administrative savings depends on which costs can be shared and how quickly they can be adjusted. A merged municipality can operate one payroll system for the combined population, but it may initially have to maintain both existing systems while transferring records and training staff. Therefore transition costs could raise spending during preparation, while reductions in duplicated functions could appear over several years. Gradual staff turnover may also delay changes in wage expenditure. We therefore expect any reduction in administrative spending per resident to be more visible several years after a merger than in its first year. The size and timing of that change are our empirical questions.
+## Preparation and adjustment
+
+Two mechanisms can change the path of spending around implementation. First, integration requires work. Migrating payroll records, agreeing on contracts and training staff can raise expenditure before the old systems are retired. The Norwegian Generalist Municipality Commission reports that administrative costs have tended to rise temporarily around mergers ([NOU 2023:9, section 15.1](https://www.regjeringen.no/no/dokumenter/nou-2023-9/id2968517/?ch=6)). Second, a predecessor council may approve spending whose benefits accrue locally while part of the future cost falls on residents of its merger partners. This common-pool incentive underlies the analysis in @askim2025local. Both mechanisms can raise pre-merger expenditure, although only the second requires a council to shift costs onto others.
+
+These mechanisms yield two expectations for the accounts. Recurring savings should become visible once duplicated functions have been removed. A temporary preparation cost should disappear even if the recurring cost of administration does not change. Both can produce a decline after a pre-merger peak. We therefore compare several pre-merger years, inspect the annual paths, and repeat the estimate without 2019. The accounts identify neither the purpose of each transaction nor which council initiated it, so those checks speak to timing rather than to the motives of individual councils.
 
 # Data
 
-## Sources
+## Sources and geographical units
 
-The data come from Statistics Norway (SSB) and the Norwegian Mapping Authority (Kartverket). SSB provides annual data for gross operating expenditure on function 120 for administration (municipal consolidated accounts, thousand NOK) at [table 12362](https://www.ssb.no/en/statbank/table/12362) and for total population on 31 December (persons) at [table 11805](https://www.ssb.no/en/statbank/table/11805), while Kartverket provides information on municipal boundaries and mergers. We use these sources to construct a panel dataset of Norwegian municipalities from 2015 to 2025, including both merged and unchanged municipalities.
+We combine annual gross operating expenditure on administration, KOSTRA function 120, from Statistics Norway's municipal consolidated accounts with population on 31 December. Expenditure is reported in thousands of current NOK. The analysis covers five fiscal years before implementation and six afterwards. The sources are [SSB table 12362](https://www.ssb.no/en/statbank/table/12362) and [SSB table 11805](https://www.ssb.no/en/statbank/table/11805).
 
-## Time period
+The unit of observation is a municipality on consistent boundaries in a given year. For Moss, using only old Moss before 2020 would omit both Rygge's spending and the people it served. Instead, we sum both predecessors' expenditure, sum their populations and divide the first total, converted to NOK, by the second. The resulting pre-merger series describes the territory served by the new Moss. It gives each predecessor's residents the appropriate weight even when one predecessor is much smaller than the other. Taking a simple mean of their per-resident spending would give both administrations equal influence over the result.
 
-The time period covers 2015 to 2025, which allows us to examine administrative spending per resident before and after the 2020 municipal reform. This period includes five years of pre-merger fiscal-years (2015-2019) and six years of post-merger (2020-2025). The pre-reform period provides a baseline for comparison, while the post-reform period allows us to observe any changes in spending that may be attributable to the mergers.
+We use the 2020 municipality code as a stable identifier and map earlier and later reporting codes back to it. A change of code alone does not count as a merger. A transfer of part of a municipality presents a different problem because the accounts do not indicate what share of spending belongs to the transferred territory. Starting from 356 geographical units, the crosswalk excludes 51 for boundary or accounting reasons, including partial transfers, earlier changes affecting comparability and Oslo's accounting exception. The retained sample comprises 20 merger units and 285 controls. The appendix documents the mapping used in the analysis.
 
-The dataset starts from 356 municipalities in 2020, and the construction excludes 51, leaving us with 305 municipalities. The 20 treated municipalities have all 11 years of observations. Nesna, Træna and Evenes lack expenditure in 2019, leaving 3,352 usable municipality-years out of 3,355 possible. This also explaing why dropping 2019 removes 302 observations.
+## Measurement and sample coverage
 
-## Variables
-
-```{=TEX}
+```{=tex}
 \begin{table}[htbp]
 \centering
 \caption{Variables used in the difference-in-differences analysis}
@@ -703,116 +491,104 @@ tables 12362 and 11805, respectively.
 \end{table}
 ```
 
-The outcome $Y_{it}$ is administrative spending per resident in municipality $i$ in year $t$. The treatment indicator $D_i$ equals 1 for municipalities that merged on 1 January 2020 and 0 for control municipalities. The post indicator $P_t$ equals 1 for years 2020--2025 and 0 for years 2015--2019. The interaction term $D_i \times P_t$ captures the difference-in-differences effect of the mergers on administrative spending per resident.
+All 20 merger units contribute observations in every year. Three control municipalities, Nesna, Træna and Evenes, lack spending observations in 2019. We leave those municipality-years out, yielding 3,352 usable observations from a possible 3,355. Replacing missing amounts with zero would artificially lower the control mean in precisely the year most relevant to the anticipation check. The descriptive figure uses the available observations in each year, and the fixed-effects regression uses the same data.
 
-Prices are current NOK. Population weights the constituent municipalities when constructing the outcome; each resulting municipality-year receives equal weight in the regression. Define treated as membership in the 2020 merger cohort, post as 2020 onward, and did as their product.
+Population plays two distinct roles. Within a merger it determines each predecessor's contribution to spending per resident. Across municipalities, each observed municipality-year receives equal weight in the regression. A change of NOK 100 per resident in a small municipality therefore matters as much to the coefficient as the same change in a large one. This weighting suits a question about the experience of the average municipality. A national budget calculation would also need the populations affected and the individual spending changes across those populations.
 
 # Methods
 
-## Design
+## Comparison and identification
 
-In 2015, the median population was approximately 22,200 in the treated proto-municipalities and 3,900 in the control municipalities. This difference matters if administrative spending per resident evolves differently in larger and smaller municipalities.
+Our difference-in-differences (DiD) design compares the change in the 20 merger units with the contemporaneous change in controls. A before-and-after comparison confined to merged areas would also capture rising wages and other changes in the cost of running local government. Controls provide a benchmark for those developments. All treated units entered the reform in the same year, so none serves as a control for a later merger. We estimate
 
-## Parallel pre-trends
+$$
+Y_{it}=\alpha_i+\lambda_t+\beta(D_i\times P_t)+\varepsilon_{it},
+$$
 
+where $Y_{it}$ is annual administrative spending in current NOK per resident. Municipality fixed effects absorb persistent differences in spending levels. Year fixed effects absorb annual changes common to both groups in NOK per resident. The two sets of effects also absorb the separate treatment and post indicators. The coefficient $\beta$ summarises the relative change across the six post-merger years. We cluster standard errors by municipality because a spending shock can persist across several budgets of the same municipality.
 
+A causal interpretation requires a credible path for spending in merged territories had the administrations remained separate. Parallel trends means that their average spending would have changed by the same amount as in controls in that counterfactual. The groups can start at different levels. A second requirement concerns anticipation. If merger preparations already increased spending in the baseline years, the estimated change compares the new organisation with administrations that were already responding to the decision. The timing of the decision and implementation matters even though the legal merger date is unambiguous. For the assumptions behind this interpretation, see [Roth et al. (2023)](https://doi.org/10.1016/j.jeconom.2023.03.008).
 
-```{r, echo = FALSE}
-model <- fixest::feols(
-  admin_nok_pc ~ did | id + year,
-  data = df_did,
-  vcov = ~id
+## Assessing the comparison group
+
+The median population in 2015 was 22,232 in the future merger units and 3,903 in controls. This gap matters because a fixed administrative expense translates into a much larger amount per resident in a small municipality. Even a common percentage increase in that expense can produce different increases in NOK per resident. Municipality fixed effects absorb the initial level difference, but they cannot absorb a difference in subsequent growth. We therefore repeat the model using only controls inside the merger units' 2015 population range. Using population measured before implementation avoids selecting controls according to how they developed afterwards.
+
+We also use the five pre-merger observations per treated unit to estimate a separate linear trend diagnostic. On the pre-2020 sample we replace the DiD interaction with the interaction of treatment status and years since 2015, retaining municipality and year effects. Its coefficient gives the difference in annual spending growth between groups, in NOK per resident per year. We estimate this slope for both control groups. It is a summary of the available pre-period and does not assume the same slope difference would have continued after 2020.
+
+# Results
+
+```{r fig-spending}
+#| echo: false
+#| fig-cap: "Mean annual administrative spending per resident. Each municipality receives equal weight. The vertical line marks the transition to the post-merger period."
+#| fig-width: 7
+#| fig-height: 3.7
+means <- function(data, series) {
+  data |>
+    group_by(year) |>
+    summarise(spending = mean(admin_nok_pc), .groups = "drop") |>
+    mutate(series = series)
+}
+annual <- bind_rows(
+  means(filter(df_did, treated == 1), "Merged in 2020"),
+  means(filter(df_did, treated == 0), "All controls"),
+  means(filter(restricted, treated == 0), "Population-range controls")
 )
-
-summary(model)
-```
-
-```{r, echo = FALSE}
-colors = c("Merged in 2020" = "palevioletred", "Control" = "cornflowerblue")
-
-
-df_did |>
-  mutate(group = if_else(treated == 1, "Merged in 2020", "Control")) |>
-  group_by(year, group) |>
-  summarise(mean_spending = mean(admin_nok_pc), .groups = "drop") |>
-  ggplot(aes(year, mean_spending, colour = colors)) +
-  geom_vline(xintercept = 2019.5, linetype = "dashed", colour = "grey50") +
-  geom_line(linewidth = 1) +
-  geom_point() +
+ggplot(annual, aes(year, spending, colour = series, linetype = series)) +
+  geom_vline(xintercept = 2019.5, colour = "grey65", linetype = "dashed") +
+  geom_line(linewidth = 0.8) +
+  geom_point(size = 1.4) +
+  scale_colour_manual(values = c("All controls" = "#346398",
+    "Merged in 2020" = "#993D64", "Population-range controls" = "#28735A")) +
   scale_x_continuous(breaks = 2015:2025) +
-  labs(x = NULL, y = "Administrative spending (NOK per resident)", colour = NULL) +
-  theme_minimal()
-
-ggsave("dokumentobjekter/figs/pretrend_plot.png", width = 6, height = 4)
+  scale_y_continuous(labels = scales::label_comma()) +
+  labs(x = NULL, y = "Current NOK per resident", colour = NULL,
+       linetype = NULL) +
+  theme_minimal(base_size = 10) +
+  theme(legend.position = "bottom")
 ```
 
+## Annual spending and pre-merger trends
 
+In 2015, the future merger units spent an average of NOK 4,450 per resident, compared with NOK 6,045 in all controls. By 2019 the means had risen to NOK 6,384 and NOK 7,181 respectively. Much of the narrowing occurred near implementation. Between 2017 and 2019 annual spending rose by about NOK 1,470 per resident in the merger group, compared with NOK 639 in controls. For the merger group relative to all controls in @fig-spending, the estimated pre-merger slope difference is positive, at NOK `r fmt(coef(slope_all)[1])` per resident per year (95% confidence interval `r fmt(confint(slope_all)[1, 1])` to `r fmt(confint(slope_all)[1, 2])`). The full control group therefore provides a questionable benchmark for the trajectory of spending even before the municipalities formally merged.
 
-## DiD specification
+After implementation the merger group fell to NOK 5,158 in 2022, then rose to NOK 5,434 in 2025. Controls reached NOK 8,525 in 2022 and NOK 10,719 in 2025. The distinction between these two intervals matters. From 2019 to 2022 the gap widened because spending fell in merged territories while it rose in controls. From 2022 to 2025 spending increased in both groups. The additional widening in those later years came predominantly from growth among controls. A widening gap at the end of the series consequently cannot be read as a fresh budget cut in the merged municipalities each year.
 
+## Pooled estimates and sensitivity checks
 
-
-# Estimated results
-
-OLS estimation, Dep. Var.: admin_nok_pc
-Observations: 3,352
-Fixed-effects: id: 305,  year: 11
-Standard-errors: Clustered (id) 
----
-Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
-RMSE: 1,845.6     Adj. R2: 0.86867 
-                Within R2: 0.021866
-
-## Diff-in-diff estimates
-
-Estimate
-<dbl>
-Std. Error
-<dbl>
-t value
-<dbl>
-Pr(>|t|)
-<chr>
- 
-<fctr>
-did	-2237.93	319.058	-7.01418	1.5055e-11	***
-
-
-## Robust checks (if relevant)
-
-```{r}
-# Does the 2019 peak drive the main result?
-model_no_2019 <- fixest::feols(
-  admin_nok_pc ~ did | id + year,
-  data = subset(df_did, year != 2019),
-  vcov = ~id
+```{r results-table}
+#| echo: false
+#| results: asis
+column <- function(model) {
+  interval <- confint(model, level = 0.95)
+  c(fmt(coef(model)[1]), fmt(sqrt(vcov(model)[1, 1])),
+    paste0("[", fmt(interval[1, 1]), ", ", fmt(interval[1, 2]), "]"),
+    fmt(nobs(model)))
+}
+results <- data.frame(
+  Measure = c("Merged × Post", "Clustered SE", "95% confidence interval",
+              "Observations"),
+  Baseline = column(model), `Omit 2019` = column(model_no_2019),
+  `Population range` = column(model_size), check.names = FALSE
 )
-
-# Did spending grow at different rates before the mergers?
-model_pretrend <- fixest::feols(
-  admin_nok_pc ~ treated:I(year - 2015) | id + year,
-  data = subset(df_did, year < 2020),
-  vcov = ~id
-)
-
-fixest::etable(model, model_no_2019, model_pretrend)
+knitr::kable(results, format = "latex", align = c("l", "r", "r", "r"),
+  caption = "Relative change in annual administrative spending (NOK per resident).")
 ```
 
-# Discussion
+The baseline estimate is a relative decline of NOK 2,238 per resident per year. Its municipality-clustered 95% confidence interval runs from NOK `r fmt(confint(model)[1, 1])` to NOK `r fmt(confint(model)[1, 2])` per resident. The magnitude may seem surprising given that the treated mean in 2025 exceeded its 2015 level. The regression compares changes between groups and pools several years on either side. It is entirely possible for a municipality to spend more than it did a decade earlier while spending considerably less than the comparison trend would predict. The interval measures sampling uncertainty conditional on the specification. Its width does not resolve the uncertainty about the comparison trend.
 
-Administrative spending per resident declined in merged municipalities relative to controls after 2020. The estimated reduction was similar when we excluded 2019. However, spending in the two groups was already evolving differently before the reform, which limits the casual interpretation of the estimated reduction. The results are consistent with the idea that merged municipalities can share administrative costs, but they also suggest that other factors may have contributed to the observed changes in spending
+Omitting 2019 removes 302 observations and reduces the estimated relative decline to NOK 2,102, about 6% below the baseline in absolute terms. Thus the high treated mean in the final pre-merger year contributes to the size of the estimate, but that single year cannot account for the result. Preparations spanning several budgets could still influence the remaining pre-period. Dropping 2019 also does nothing to alter the strong subsequent growth among controls.
 
-## Policy implications
+Restricting controls to the treated population range of 2,672 to 193,420 retains all 20 mergers and 176 controls. Of the 109 controls removed, 108 were below the lower bound. The estimated decline falls to NOK 1,132, roughly half the baseline magnitude. In 2015 these retained controls spent NOK 4,241 per resident, much closer to the merger group's NOK 4,450. Yet their mean reached only NOK 4,944 by 2019. The estimated pre-period slope difference actually rises to NOK `r fmt(coef(slope_size)[1])` per resident per year. Similar initial spending and overlapping populations thus solve only part of the comparison problem. Neither estimate offers a clean basis for choosing a single figure for merger savings.
 
+# Discussion and conclusion
 
-## Limitations
+The results are consistent with an administrative saving, particularly during the first years in which the new municipalities operated. They are also consistent with the unwinding of spending incurred during preparation. The stronger evidence concerns the spending path itself. Administrative expenditure in the merged territories fell after its 2019 peak and then stabilised within a relatively narrow range in nominal terms. How much of the later gap we attribute to the mergers depends heavily on what we believe would otherwise have happened in those territories. Removing mostly small controls changes that benchmark substantially.
 
+For a council preparing a merger budget, the distinction affects which savings can credibly be entered into a financial plan. A council can identify the annual cost of a contract it expects to retire, the date on which it can terminate that contract, and the one-off cost of moving to the replacement system. Those figures can be checked against subsequent accounts. Applying the national comparison coefficient to the local population would bypass those questions and give a misleading impression of precision. It would also treat the full post-merger gap as cash released for other purposes, even in years when the council's own expenditure increased.
 
+Two limits qualify the wider policy interpretation. First, the design covers mergers whose predecessor accounts can be combined for the same territory. Municipalities that absorbed only part of a neighbour may have faced different integration costs. Second, function 120 records gross expenditure in current prices. It cannot distinguish lower input use from changes in the allocation of staff time across accounting functions, and it gives no direct evidence on administrative output. Combining expenditure data with staffing, case-processing times or service access would help establish what residents received for the money spent.
 
-
-
-
-
+For the 20 mergers studied here, both comparison groups imply lower relative administrative expenditure after 2020. The smaller estimate obtained with population-comparable controls and the divergence already visible before implementation limit the causal conclusion. The evidence supports following merger budgets across several years and examining which recurring costs actually disappear before treating the observed difference as a permanent efficiency gain.
 
 \clearpage
 
@@ -821,17 +597,66 @@ Administrative spending per resident declined in merged municipalities relative 
 ::: {#refs}
 :::
 
-\newpage
+Generalistkommuneutvalget. (2023). *Generalistkommunesystemet: Likt ansvar – ulike forutsetninger* (NOU 2023: 9, section 15.1). [Report](https://www.regjeringen.no/no/dokumenter/nou-2023-9/id2968517/?ch=6).
+
+Roth, J., Sant’Anna, P. H. C., Bilinski, A., & Poe, J. (2023). What’s trending in difference-in-differences? A synthesis of the recent econometrics literature. *Journal of Econometrics, 235*(2), 2218–2244. [DOI](https://doi.org/10.1016/j.jeconom.2023.03.008).
+
+\clearpage
 
 # Appendix {.unnumbered}
 
+## AI use {.unnumbered}
 
-\appendix
+GitHub Copilot suggested code while I worked in Visual Studio Code and RStudio. I sometimes accepted suggestions, including completions based on my comments. ChatGPT assisted with the municipal crosswalk, panel construction, sensitivity checks, tables and figure. It also drafted and revised prose throughout the paper, including the theoretical framework and interpretation of the estimates.
 
-\section{Appendix General AI Use}
+## R code {.unnumbered}
 
-When I write code in Visual Studio Code or RStudio, I use a plugin called GitHub Copilot. This plugin will try to suggest code or sentences(even paragraphs) as I write. I sometimes accept the suggestions but only if it's how I would do it. There are also cases where it can be seen in the code that I comment with a "plotting year on x, value on y" so that it will just autofill the code we usually use.
+The analysis starts from the joined SSB expenditure and population extracts. The code uses a local copy of that file when available and otherwise downloads it from the project repository. Municipality codes are stored as character strings to preserve leading zeros. The resulting workbook contains the municipality-years used in the baseline regression.
 
-Documenting each of these instances would be cumbersome and wouldn't serve any purpose. All code sections with such comments can be assumed to have involved GitHub Copilot. More information about this AI tool is available at <https://github.com/features/copilot>.
+### Prepare the source extracts {.unnumbered}
 
-Doing coding has changed over the last few years, and ChatGPT 6.2 was used to help with merging the data and creating the panel dataset. The code was written in R and is available in the appendix, the code chunks is labeled as such. It was reviewed by me to ensure that it was correct and appropriate for the analysis.
+To rebuild the joined input from the original Statbank downloads, place the two semicolon-delimited extracts in the data directory and run the following preparation step once.
+
+```{r, eval=FALSE, echo=TRUE}
+read_extract <- function(filename) {
+  readr::read_delim(file.path("dokumentobjekter/data", filename),
+    delim = ";", skip = 1, locale = readr::locale(encoding = "Windows-1252"),
+    na = c(".", ":", "..", ""), show_col_types = FALSE)
+}
+costs <- read_extract("administrative_costs.csv") |>
+  dplyr::filter(!region %in% c("EAK Landet", "EAKUO Landet uten Oslo"))
+population <- read_extract("personer_kommuner.csv")
+joined <- dplyr::left_join(costs, population, by = "region",
+                           relationship = "one-to-one")
+readr::write_csv(joined, "dokumentobjekter/data/panel.csv", na = "")
+```
+
+### Read the joined SSB extracts {.unnumbered}
+
+```{r, ref.label="load-input", eval=FALSE, echo=TRUE, include=TRUE}
+```
+
+### Map reporting codes to stable areas {.unnumbered}
+
+```{r, ref.label="municipality-codes", eval=FALSE, echo=TRUE, include=TRUE}
+```
+
+### Construct the panel and export the dataset {.unnumbered}
+
+```{r, ref.label="build-panel", eval=FALSE, echo=TRUE, include=TRUE}
+```
+
+### Estimate the models {.unnumbered}
+
+```{r, ref.label="estimate-models", eval=FALSE, echo=TRUE, include=TRUE}
+```
+
+### Plot annual group means {.unnumbered}
+
+```{r, ref.label="fig-spending", eval=FALSE, echo=TRUE, include=TRUE}
+```
+
+### Format the regression table {.unnumbered}
+
+```{r, ref.label="results-table", eval=FALSE, echo=TRUE, include=TRUE}
+```
